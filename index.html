@@ -1,0 +1,1808 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Estrutura de Produto — Cascata</title>
+<style>
+:root{
+  --graphite-900:#1B2027; --graphite-800:#222932; --graphite-700:#2C333D;
+  --graphite-600:#3A424D; --graphite-500:#4A5568; --line-on-dark:#4E5A68;
+  --paper:#F5F5F2; --paper-dim:#EAEAE5; --paper-edge:#D9D9D2;
+  --ink:#1C2126; --ink-dim:#5B6472; --ink-faint:#8890989c;
+  --line:#C7C7BF;
+  --blueprint:#2D5F8A; --blueprint-dim:#A9C4DA; --blueprint-ink:#1E4463;
+  --amber:#B8722A; --danger:#A8422C; --success:#3C7A5C; --purple:#725A93;
+  --font-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-mono:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",Menlo,monospace;
+  --radius:3px;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; font-family:var(--font-ui); color:var(--ink); background:var(--graphite-900);
+  -webkit-font-smoothing:antialiased; overflow:hidden;
+}
+button{font-family:inherit; cursor:pointer;}
+input,select,textarea{font-family:inherit;}
+::selection{background:var(--blueprint); color:#fff;}
+
+#app{display:flex; flex-direction:column; height:100vh; width:100vw;}
+
+/* ---------- Title bar ---------- */
+#titlebar{
+  display:flex; align-items:center; gap:10px; padding:0 12px; height:44px; flex:none;
+  background:var(--graphite-900); color:#E7E9EC; border-bottom:1px solid var(--graphite-700);
+}
+#titlebar .brand{font-weight:700; font-size:13px; letter-spacing:.02em; color:#C9D3DC; white-space:nowrap;}
+#titlebar .brand small{display:block; font-weight:400; font-size:9.5px; color:#8892A0; letter-spacing:.04em;}
+#projectName{
+  background:transparent; border:1px solid transparent; color:#fff; font-size:14px; font-weight:600;
+  padding:5px 8px; border-radius:var(--radius); min-width:120px; max-width:320px;
+}
+#projectName:hover{border-color:var(--graphite-600);}
+#projectName:focus{outline:none; border-color:var(--blueprint); background:var(--graphite-800);}
+.saveStatus{font-size:11px; color:#8FAF9B; display:flex; align-items:center; gap:5px; white-space:nowrap;}
+.saveStatus .dot{width:6px;height:6px;border-radius:50%;background:#5FA980;}
+.saveStatus.dirty{color:#D3AE7C;} .saveStatus.dirty .dot{background:#D3AE7C;}
+#titlebar .spacer{flex:1;}
+.tb-btn{
+  background:var(--graphite-800); color:#E1E4E8; border:1px solid var(--graphite-600);
+  padding:6px 11px; border-radius:var(--radius); font-size:12.5px; font-weight:500; white-space:nowrap;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.tb-btn:hover{background:var(--graphite-700); border-color:var(--graphite-500);}
+.tb-btn.primary{background:var(--blueprint); border-color:var(--blueprint); color:#fff;}
+.tb-btn.primary:hover{background:#3A6E9C;}
+
+/* ---------- Ribbon toolbar ---------- */
+#ribbon{
+  display:flex; align-items:stretch; gap:0; flex:none; background:var(--paper-dim);
+  border-bottom:1px solid var(--paper-edge); padding:6px 10px; overflow-x:auto; overflow-y:hidden;
+}
+.rgroup{display:flex; align-items:center; gap:4px; padding:0 10px; border-right:1px solid var(--paper-edge);}
+.rgroup:last-child{border-right:none;}
+.rgroup-stack{display:flex; flex-direction:column; align-items:center; gap:2px;}
+.rgroup-label{font-size:9px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-dim); margin-top:2px;}
+.rbtn{
+  background:transparent; border:1px solid transparent; border-radius:var(--radius);
+  padding:6px 8px; font-size:12px; color:var(--ink); display:flex; flex-direction:column; align-items:center;
+  gap:3px; min-width:52px;
+}
+.rbtn .ic{font-size:16px; line-height:1;}
+.rbtn:hover{background:#fff; border-color:var(--line);}
+.rbtn:active{background:var(--paper-edge);}
+.rbtn:disabled{opacity:.35; cursor:default;}
+.rbtn:disabled:hover{background:transparent; border-color:transparent;}
+.rbtn-row{display:flex; gap:2px;}
+.rbtn-sm{
+  background:transparent; border:1px solid transparent; border-radius:var(--radius);
+  padding:5px 7px; font-size:12.5px; color:var(--ink);
+}
+.rbtn-sm:hover{background:#fff; border-color:var(--line);}
+.rbtn-sm:disabled{opacity:.35;}
+.searchRow{display:flex; align-items:center; gap:4px;}
+#searchBox{
+  border:1px solid var(--line); border-radius:var(--radius); padding:6px 9px; font-size:12.5px;
+  width:150px; background:#fff;
+}
+#searchBox:focus{outline:none; border-color:var(--blueprint);}
+#searchCount{font-size:10.5px; color:var(--ink-dim); min-width:34px; text-align:center; font-variant-numeric:tabular-nums;}
+
+/* ---------- Workspace ---------- */
+#workspace{flex:1; display:flex; min-height:0; background:var(--paper); position:relative;}
+
+#outlinePanel{
+  width:300px; flex:none; display:flex; flex-direction:column; background:#fff;
+  border-right:1px solid var(--line); min-width:0; transition:width .18s ease;
+}
+#outlinePanel.collapsed{width:0; border:none; overflow:hidden;}
+.panelHead{
+  padding:10px 12px 8px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--ink-dim); border-bottom:1px solid var(--paper-edge); display:flex; justify-content:space-between; align-items:center;
+}
+.panelHead .phRight{display:flex; align-items:center; gap:6px;}
+.pcollapse{
+  width:20px; height:20px; flex:none; border:1px solid var(--line); background:#fff; border-radius:2px;
+  color:var(--ink-dim); font-size:11px; display:flex; align-items:center; justify-content:center;
+}
+.pcollapse:hover{background:var(--paper-dim); color:var(--ink);}
+#outlineList{flex:1; overflow-y:auto; padding:6px 0;}
+
+.orow{
+  display:flex; align-items:center; gap:4px; padding:3px 8px 3px 4px; cursor:pointer;
+  border-left:3px solid transparent; position:relative;
+}
+.orow:hover{background:var(--paper-dim);}
+.orow.selected{background:#E4EEF5; border-left-color:var(--blueprint);}
+.orow.dragging{opacity:.4;}
+.orow.drop-before::before, .orow.drop-after::after{
+  content:""; position:absolute; left:8px; right:8px; height:2px; background:var(--blueprint);
+}
+.orow.drop-before::before{top:-1px;} .orow.drop-after::after{bottom:-1px;}
+.orow.drop-child{background:#DCEBD9; outline:1px dashed var(--success); outline-offset:-1px;}
+.ohandle{cursor:grab; color:var(--ink-faint); font-size:12px; padding:0 2px; width:12px; text-align:center; flex:none;}
+.ohandle:active{cursor:grabbing;}
+.otoggle{
+  width:16px; height:16px; flex:none; border:none; background:transparent; color:var(--ink-dim);
+  font-size:10px; display:flex; align-items:center; justify-content:center; border-radius:2px;
+}
+.otoggle:hover{background:var(--paper-edge);}
+.otoggle.spacer{visibility:hidden;}
+.oswatch{width:6px; height:16px; border-radius:1px; flex:none;}
+.ocode{
+  width:64px; flex:none; border:1px solid transparent; background:transparent; font-family:var(--font-mono);
+  font-size:10.5px; color:var(--blueprint-ink); padding:3px 4px; border-radius:2px;
+}
+.oname{
+  flex:1; min-width:0; border:1px solid transparent; background:transparent; font-size:12.5px;
+  color:var(--ink); padding:3px 4px; border-radius:2px;
+}
+.ocode:hover,.oname:hover{border-color:var(--line);}
+.ocode:focus,.oname:focus{outline:none; border-color:var(--blueprint); background:#fff;}
+.orow.root-row .oname{font-weight:700;}
+.orowbtns{display:flex; gap:1px; opacity:0; flex:none;}
+.orow:hover .orowbtns{opacity:1;}
+.oibtn{
+  width:18px; height:18px; border:none; background:transparent; color:var(--ink-dim); border-radius:2px;
+  font-size:12px; display:flex; align-items:center; justify-content:center;
+}
+.oibtn:hover{background:var(--paper-edge); color:var(--ink);}
+.oibtn.danger:hover{background:#F3D9D3; color:var(--danger);}
+.omatch{background:#FCE8B8;}
+.omatch.selected{background:#E4EEF5;}
+#outlineEmpty{padding:20px 16px; font-size:12px; color:var(--ink-dim); text-align:center;}
+
+/* ---------- Diagram panel ---------- */
+#diagramPanel{flex:1; display:flex; flex-direction:column; min-width:0; position:relative;}
+#diagramToolbar{
+  display:flex; align-items:center; gap:6px; padding:6px 10px; border-bottom:1px solid var(--paper-edge);
+  background:#fff; font-size:12px; color:var(--ink-dim); flex:none; flex-wrap:wrap;
+}
+#diagramToolbar .zoomLabel{width:42px; text-align:center; font-variant-numeric:tabular-nums;}
+#diagramToolbar .sep{width:1px; height:18px; background:var(--paper-edge); margin:0 4px;}
+#diagramHint{white-space:nowrap;}
+#canvasWrap{
+  flex:1; overflow:hidden; position:relative; background:
+    linear-gradient(var(--paper-edge) 1px, transparent 1px) 0 0/24px 24px,
+    linear-gradient(90deg, var(--paper-edge) 1px, transparent 1px) 0 0/24px 24px,
+    var(--paper);
+  cursor:grab; touch-action:none;
+}
+#canvasWrap.panning{cursor:grabbing;}
+#canvasWrap.node-dragging{cursor:default;}
+svg#canvas{width:100%; height:100%; display:block; user-select:none;}
+.nbox{cursor:pointer;}
+.nbox rect.box{fill:#fff; stroke:var(--line); stroke-width:1.4;}
+.nbox.root rect.box{fill:var(--paper-dim); stroke:var(--blueprint); stroke-width:1.6;}
+.nbox.selected rect.box{stroke:var(--blueprint); stroke-width:2.4;}
+.nbox text{pointer-events:none;}
+.nbox .codeText{font-family:var(--font-mono); font-size:10px; fill:var(--blueprint-ink);}
+.nbox .nameText{font-family:var(--font-ui); font-size:12.5px; font-weight:700; fill:var(--ink);}
+.nbox .qtyBadge rect{fill:var(--paper-dim); stroke:var(--line); stroke-width:1;}
+.nbox .qtyBadge text{font-size:9.5px; fill:var(--ink-dim); font-family:var(--font-mono);}
+.nbox .addBtn{opacity:0; transition:opacity .12s;}
+.nbox:hover .addBtn, .nbox.selected .addBtn{opacity:1;}
+.nbox .addBtn circle{fill:var(--blueprint); stroke:#fff; stroke-width:1.5;}
+.nbox .addBtn text{fill:#fff; font-size:12px; font-weight:700; text-anchor:middle; dominant-baseline:middle; pointer-events:none;}
+.nbox .toggleBtn circle{fill:#fff; stroke:var(--line); stroke-width:1.3;}
+.nbox .toggleBtn text{fill:var(--ink-dim); font-size:11px; text-anchor:middle; dominant-baseline:middle; pointer-events:none; font-weight:700;}
+.edge{fill:none; stroke:var(--ink-faint); stroke-width:1.4;}
+.hiddenCount{font-size:9px; fill:var(--ink-dim); font-family:var(--font-mono);}
+#legend{
+  position:absolute; left:12px; bottom:12px; background:rgba(255,255,255,.92); border:1px solid var(--line);
+  border-radius:var(--radius); padding:8px 10px; font-size:10.5px; color:var(--ink-dim); display:flex; gap:12px;
+  backdrop-filter:blur(2px);
+}
+#legend .litem{display:flex; align-items:center; gap:5px;}
+#legend .lsw{width:9px; height:9px; border-radius:2px;}
+
+/* ---------- Properties panel ---------- */
+#propsPanel{width:300px; flex:none; background:#fff; border-left:1px solid var(--line); display:flex; flex-direction:column; min-width:0; transition:width .18s ease;}
+#propsPanel.collapsed{width:0; border:none; overflow:hidden;}
+#propsBody{flex:1; overflow-y:auto; padding:12px;}
+#propsEmpty{padding:26px 14px; text-align:center; color:var(--ink-dim); font-size:12.5px; line-height:1.5;}
+.field{margin-bottom:14px;}
+.field label{display:block; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-dim); margin-bottom:5px;}
+.field input[type=text],.field input[type=number],.field select,.field textarea{
+  width:100%; border:1px solid var(--line); border-radius:var(--radius); padding:7px 9px; font-size:13px; color:var(--ink);
+  background:#fff;
+}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none; border-color:var(--blueprint); box-shadow:0 0 0 3px rgba(45,95,138,.12);}
+.field textarea{resize:vertical; min-height:56px; line-height:1.4;}
+.field.inline{display:flex; gap:8px;}
+.field.inline > div{flex:1;}
+.field .mono{font-family:var(--font-mono);}
+.colorSwatches{display:flex; gap:6px; flex-wrap:wrap;}
+.cswatch{
+  width:30px; height:30px; border-radius:var(--radius); border:2px solid transparent; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px;
+}
+.cswatch.active{border-color:var(--ink);}
+.metaRow{font-size:11.5px; color:var(--ink-dim); display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed var(--paper-edge);}
+.breadcrumb{font-size:11.5px; color:var(--ink-dim); line-height:1.5; padding:8px 9px; background:var(--paper-dim); border-radius:var(--radius); margin-bottom:14px; word-break:break-word;}
+#propsHeaderTitle{font-size:14px; font-weight:700; margin:0 0 2px; word-break:break-word;}
+#propsHeaderCode{font-family:var(--font-mono); font-size:11px; color:var(--blueprint-ink); margin-bottom:14px;}
+
+/* ---------- Status bar ---------- */
+#statusbar{
+  flex:none; height:26px; background:var(--graphite-900); color:#8FA0AE; font-size:11px;
+  display:flex; align-items:center; gap:16px; padding:0 12px;
+}
+#statusbar .stat{white-space:nowrap;}
+#statusbar .spacer{flex:1;}
+#statusbar kbd{background:var(--graphite-700); border:1px solid var(--graphite-600); border-radius:2px; padding:0 4px; font-family:var(--font-mono); font-size:10px;}
+
+/* ---------- Panel toggles (collapsed side tabs) ---------- */
+.paneToggle{
+  position:absolute; top:50%; transform:translateY(-50%); width:16px; height:44px; background:#fff;
+  border:1px solid var(--line); border-radius:0 4px 4px 0; align-items:center; justify-content:center;
+  font-size:11px; color:var(--ink-dim); z-index:5; display:none;
+}
+.paneToggle:hover{background:var(--paper-dim); color:var(--ink);}
+.paneToggle.right{border-radius:4px 0 0 4px;}
+
+/* ---------- Mobile scrim (backdrop behind overlay panels) ---------- */
+#mobileScrim{position:fixed; inset:0; background:rgba(27,32,39,.4); z-index:9; display:none;}
+#mobileScrim.show{display:block;}
+
+/* ---------- Modal ---------- */
+#modalOverlay{
+  position:fixed; inset:0; background:rgba(27,32,39,.55); display:none; align-items:center; justify-content:center; z-index:100;
+}
+#modalOverlay.open{display:flex;}
+.modal{background:#fff; border-radius:6px; width:480px; max-width:92vw; max-height:86vh; display:flex; flex-direction:column; box-shadow:0 12px 40px rgba(0,0,0,.3);}
+.modalHead{padding:16px 18px 12px; border-bottom:1px solid var(--paper-edge); display:flex; justify-content:space-between; align-items:center;}
+.modalHead h2{margin:0; font-size:15px;}
+.modalHead button{background:none; border:none; font-size:18px; color:var(--ink-dim); padding:2px 6px;}
+.modalBody{padding:16px 18px; overflow-y:auto;}
+.modalFoot{padding:12px 18px 16px; display:flex; justify-content:flex-end; gap:8px; border-top:1px solid var(--paper-edge);}
+.btn{padding:8px 16px; border-radius:var(--radius); border:1px solid var(--line); background:#fff; font-size:13px; font-weight:600;}
+.btn:hover{background:var(--paper-dim);}
+.btn.primary{background:var(--blueprint); border-color:var(--blueprint); color:#fff;}
+.btn.primary:hover{background:#3A6E9C;}
+.btn.danger{background:var(--danger); border-color:var(--danger); color:#fff;}
+.optCard{border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px; margin-bottom:10px; cursor:pointer;}
+.optCard:hover{border-color:var(--blueprint); background:#F4F8FB;}
+.optCard.selected{border-color:var(--blueprint); background:#EAF2F8;}
+.optCard h3{margin:0 0 3px; font-size:13.5px;}
+.optCard p{margin:0; font-size:11.5px; color:var(--ink-dim);}
+.projRow{display:flex; align-items:center; gap:10px; padding:10px 8px; border-bottom:1px solid var(--paper-edge);}
+.projRow:hover{background:var(--paper-dim);}
+.projRow .pname{flex:1; font-size:13px; font-weight:600;}
+.projRow .pmeta{font-size:11px; color:var(--ink-dim);}
+.projRow button{background:none; border:none; color:var(--ink-dim); font-size:13px; padding:4px 6px;}
+.projRow button:hover{color:var(--danger);}
+
+/* ---------- Toast ---------- */
+#toastWrap{position:fixed; bottom:38px; left:50%; transform:translateX(-50%); z-index:200; display:flex; flex-direction:column; gap:6px; align-items:center;}
+.toast{background:var(--graphite-900); color:#fff; padding:9px 16px; border-radius:20px; font-size:12.5px; box-shadow:0 4px 16px rgba(0,0,0,.25); opacity:0; transform:translateY(6px); transition:opacity .18s, transform .18s;}
+.toast.show{opacity:1; transform:translateY(0);}
+
+/* ---------- Print ---------- */
+#printArea{display:none;}
+@media print{
+  body *{visibility:hidden;}
+  #printArea, #printArea *{visibility:visible;}
+  #printArea{display:block; position:absolute; left:0; top:0; width:100%;}
+  .printHeader{display:flex; justify-content:space-between; align-items:baseline; border-bottom:2px solid #222; padding-bottom:8px; margin-bottom:14px;}
+  .printHeader h1{font-size:18px; margin:0; font-family:sans-serif;}
+  .printHeader span{font-size:10px; color:#555; font-family:sans-serif;}
+  table.printTable{width:100%; border-collapse:collapse; font-family:sans-serif; font-size:10.5px;}
+  table.printTable th,table.printTable td{border:1px solid #999; padding:5px 7px; text-align:left; vertical-align:top;}
+  table.printTable th{background:#eee;}
+  table.printTable thead{display:table-header-group;}
+}
+
+@media (max-width:880px){
+  #outlinePanel, #propsPanel{position:absolute; top:0; bottom:0; z-index:10; box-shadow:0 0 24px rgba(0,0,0,.2);}
+  #outlinePanel{left:0;} #propsPanel{right:0;}
+  #diagramToolbar{gap:4px;}
+  #diagramHint{display:none;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header id="titlebar">
+    <div class="brand">ESTRUTURA DE PRODUTO<small>cascata de itens · pai &amp; filhos</small></div>
+    <input id="projectName" value="Novo Projeto" spellcheck="false">
+    <div class="saveStatus" id="saveStatus"><span class="dot"></span><span id="saveStatusText">salvo</span></div>
+    <div class="spacer"></div>
+    <button class="tb-btn" id="btnProjects">📁 Meus Projetos</button>
+    <button class="tb-btn" id="btnNewProject">＋ Novo</button>
+    <button class="tb-btn primary" id="btnExportMenu">⭳ Exportar</button>
+  </header>
+
+  <div id="ribbon">
+    <div class="rgroup">
+      <div class="rgroup-stack">
+        <div class="rbtn-row">
+          <button class="rbtn-sm" id="rNewChild" title="Novo item filho (Insert)"><b>＋</b> Filho</button>
+          <button class="rbtn-sm" id="rNewSibling" title="Novo item irmão (Enter)"><b>＋</b> Irmão</button>
+        </div>
+        <div class="rbtn-row">
+          <button class="rbtn-sm" id="rPromote" title="Promover nível (Shift+Tab)">⇤ Promover</button>
+          <button class="rbtn-sm" id="rDemote" title="Rebaixar nível (Tab)">⇥ Rebaixar</button>
+        </div>
+      </div>
+      <div class="rgroup-label">Estrutura</div>
+    </div>
+
+    <div class="rgroup">
+      <div class="rgroup-stack">
+        <div class="rbtn-row">
+          <button class="rbtn-sm" id="rMoveUp" title="Mover para cima">↑ Mover</button>
+          <button class="rbtn-sm" id="rMoveDown" title="Mover para baixo">↓ Mover</button>
+        </div>
+        <div class="rbtn-row">
+          <button class="rbtn-sm" id="rDuplicate" title="Duplicar (Ctrl+D)">⧉ Duplicar</button>
+          <button class="rbtn-sm" id="rDelete" title="Excluir (Delete)">✕ Excluir</button>
+        </div>
+      </div>
+      <div class="rgroup-label">Organizar</div>
+    </div>
+
+    <div class="rgroup">
+      <div class="rgroup-stack">
+        <div class="rbtn-row">
+          <button class="rbtn-sm" id="rExpandAll" title="Expandir tudo">▾ Expandir</button>
+          <button class="rbtn-sm" id="rCollapseAll" title="Recolher tudo">▸ Recolher</button>
+        </div>
+        <div class="rbtn-row">
+          <button class="rbtn-sm" id="rAutoLayout" title="Reorganizar automaticamente">▦ Auto-organizar</button>
+        </div>
+      </div>
+      <div class="rgroup-label">Árvore</div>
+    </div>
+
+    <div class="rgroup">
+      <div class="rgroup-stack">
+        <div class="rbtn-row">
+          <button class="rbtn-sm" id="rUndo" title="Desfazer (Ctrl+Z)">↺ Desfazer</button>
+          <button class="rbtn-sm" id="rRedo" title="Refazer (Ctrl+Shift+Z)">↻ Refazer</button>
+        </div>
+      </div>
+      <div class="rgroup-label">Histórico</div>
+    </div>
+
+    <div class="rgroup">
+      <div class="searchRow">
+        <input id="searchBox" type="text" placeholder="Localizar código ou nome…">
+        <button class="rbtn-sm" id="searchPrev" title="Resultado anterior (Shift+Enter)" disabled>‹</button>
+        <span id="searchCount"></span>
+        <button class="rbtn-sm" id="searchNext" title="Próximo resultado (Enter)" disabled>›</button>
+      </div>
+      <div class="rgroup-label">Buscar</div>
+    </div>
+
+    <div class="rgroup">
+      <div class="rgroup-stack">
+        <div class="rbtn-row">
+          <button class="rbtn-sm" id="rExportPdf" title="Exportar PDF / Imprimir">🖶 PDF</button>
+          <button class="rbtn-sm" id="rExportDocx" title="Exportar Word (.docx)">Ⓦ DOCX</button>
+        </div>
+        <div class="rbtn-row">
+          <button class="rbtn-sm" id="rExportJson" title="Exportar JSON (.json)">{ } JSON</button>
+          <button class="rbtn-sm" id="rImportJson" title="Importar JSON (.json)">⇪ Importar</button>
+        </div>
+      </div>
+      <div class="rgroup-label">Exportar</div>
+    </div>
+  </div>
+
+  <div id="workspace">
+    <aside id="outlinePanel">
+      <div class="panelHead">
+        <span>Estrutura</span>
+        <div class="phRight">
+          <span id="outlineCount" style="font-weight:400; text-transform:none; color:var(--ink-faint);"></span>
+          <button class="pcollapse" id="toggleOutline" title="Recolher painel">«</button>
+        </div>
+      </div>
+      <div id="outlineList"></div>
+    </aside>
+
+    <button class="paneToggle" id="openOutlineTab" style="left:0;" title="Mostrar estrutura">›</button>
+
+    <section id="diagramPanel">
+      <div id="diagramToolbar">
+        <button class="rbtn-sm" id="zOut" title="Reduzir zoom">－</button>
+        <span class="zoomLabel" id="zoomLabel">100%</span>
+        <button class="rbtn-sm" id="zIn" title="Aumentar zoom">＋</button>
+        <div class="sep"></div>
+        <button class="rbtn-sm" id="zFit" title="Ajustar à tela">⛶ Ajustar</button>
+        <button class="rbtn-sm" id="z100" title="Zoom 100%">100%</button>
+        <div class="sep"></div>
+        <span id="diagramHint">Clique para selecionar · arraste um item para reposicionar · arraste na lista à esquerda para reorganizar a hierarquia · pinça para zoom no toque</span>
+      </div>
+      <div id="canvasWrap">
+        <svg id="canvas" xmlns="http://www.w3.org/2000/svg">
+          <g id="viewport">
+            <g id="edgesLayer"></g>
+            <g id="nodesLayer"></g>
+          </g>
+        </svg>
+      </div>
+      <div id="legend"></div>
+    </section>
+
+    <button class="paneToggle right" id="openPropsTab" style="right:0;" title="Mostrar propriedades">‹</button>
+
+    <aside id="propsPanel">
+      <div class="panelHead">
+        <span>Propriedades</span>
+        <button class="pcollapse" id="togglePropsPanel" title="Recolher painel">»</button>
+      </div>
+      <div id="propsBody"></div>
+    </aside>
+  </div>
+
+  <footer id="statusbar">
+    <span class="stat" id="statNodes">0 itens</span>
+    <span class="stat" id="statSelected"></span>
+    <span class="spacer"></span>
+    <span class="stat">Tab/Shift+Tab: rebaixar/promover · Enter: novo irmão · Delete: excluir · <kbd>Ctrl</kbd>+<kbd>Z</kbd> desfazer</span>
+  </footer>
+</div>
+
+<div id="printArea"></div>
+<div id="toastWrap"></div>
+<div id="mobileScrim"></div>
+
+<div id="modalOverlay">
+  <div class="modal" id="modalBox">
+    <div class="modalHead"><h2 id="modalTitle">Título</h2><button id="modalClose">✕</button></div>
+    <div class="modalBody" id="modalBody"></div>
+    <div class="modalFoot" id="modalFoot"></div>
+  </div>
+</div>
+
+<input type="file" id="fileImport" accept="application/json" style="display:none">
+
+<script>
+'use strict';
+/* =====================================================================
+   EPC — Estrutura de Produto Cascata
+   Aplicação única, sem dependências externas.
+   ===================================================================== */
+
+/* --------------------------- Núcleo de dados --------------------------- */
+const EPC = {};
+let _idCounter = 1;
+function genId(){ return 'n' + (_idCounter++) + '_' + Math.random().toString(36).slice(2,7); }
+EPC.genId = genId;
+
+function newNode(overrides){
+  return Object.assign({
+    id: genId(), parentId: null, children: [], code: '', name: 'Novo item',
+    qty: 1, unit: 'un', desc: '', color: '', collapsed: false, manualX: null, manualY: null
+  }, overrides || {});
+}
+EPC.newNode = newNode;
+
+function newProject(name){
+  const root = newNode({ name: name || 'Produto Principal', code: '', parentId: null });
+  return {
+    id: 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    name: name || 'Novo Projeto', rootId: root.id, nodes: { [root.id]: root },
+    createdAt: Date.now(), updatedAt: Date.now()
+  };
+}
+EPC.newProject = newProject;
+
+function getNode(p,id){ return p.nodes[id]; }
+function getRoot(p){ return p.nodes[p.rootId]; }
+function isDescendant(p,ancestorId,nodeId){
+  let cur = p.nodes[nodeId];
+  while(cur){ if(cur.id===ancestorId) return true; cur = cur.parentId ? p.nodes[cur.parentId] : null; }
+  return false;
+}
+function addChild(p,parentId,overrides){
+  const parent = p.nodes[parentId]; if(!parent) return null;
+  const node = newNode(Object.assign({parentId:parentId}, overrides));
+  p.nodes[node.id]=node; parent.children.push(node.id); parent.collapsed=false;
+  return node;
+}
+function addSiblingAfter(p,siblingId,overrides){
+  const sib = p.nodes[siblingId];
+  if(!sib || !sib.parentId) return addChild(p,siblingId,overrides);
+  const parent = p.nodes[sib.parentId];
+  const node = newNode(Object.assign({parentId:parent.id}, overrides));
+  p.nodes[node.id]=node;
+  const idx = parent.children.indexOf(siblingId);
+  parent.children.splice(idx+1,0,node.id);
+  return node;
+}
+function deleteNode(p,id){
+  const node = p.nodes[id]; if(!node || !node.parentId) return;
+  const toDelete=[];
+  (function collect(nid){ toDelete.push(nid); p.nodes[nid].children.forEach(collect); })(id);
+  const parent = p.nodes[node.parentId];
+  parent.children = parent.children.filter(cid=>cid!==id);
+  toDelete.forEach(nid=>delete p.nodes[nid]);
+}
+function duplicateNode(p,id){
+  const node = p.nodes[id]; if(!node || !node.parentId) return null;
+  function cloneSubtree(nid,newParentId){
+    const src = p.nodes[nid];
+    const copy = newNode(Object.assign({}, src, {id:genId(), parentId:newParentId, children:[]}));
+    p.nodes[copy.id]=copy;
+    src.children.forEach(cid=>{ const cc=cloneSubtree(cid,copy.id); copy.children.push(cc.id); });
+    return copy;
+  }
+  const parent = p.nodes[node.parentId];
+  const copy = cloneSubtree(id,parent.id);
+  const idx = parent.children.indexOf(id);
+  parent.children.splice(idx+1,0,copy.id);
+  return copy;
+}
+function moveUp(p,id){
+  const node=p.nodes[id]; if(!node||!node.parentId) return false;
+  const parent=p.nodes[node.parentId]; const idx=parent.children.indexOf(id);
+  if(idx<=0) return false;
+  [parent.children[idx-1],parent.children[idx]]=[parent.children[idx],parent.children[idx-1]];
+  return true;
+}
+function moveDown(p,id){
+  const node=p.nodes[id]; if(!node||!node.parentId) return false;
+  const parent=p.nodes[node.parentId]; const idx=parent.children.indexOf(id);
+  if(idx===-1||idx>=parent.children.length-1) return false;
+  [parent.children[idx+1],parent.children[idx]]=[parent.children[idx],parent.children[idx+1]];
+  return true;
+}
+function promote(p,id){
+  const node=p.nodes[id]; if(!node||!node.parentId) return false;
+  const parent=p.nodes[node.parentId]; if(!parent.parentId) return false;
+  const grand=p.nodes[parent.parentId];
+  parent.children = parent.children.filter(cid=>cid!==id);
+  const idx = grand.children.indexOf(parent.id);
+  grand.children.splice(idx+1,0,id);
+  node.parentId = grand.id;
+  return true;
+}
+function demote(p,id){
+  const node=p.nodes[id]; if(!node||!node.parentId) return false;
+  const parent=p.nodes[node.parentId]; const idx=parent.children.indexOf(id);
+  if(idx<=0) return false;
+  const newParentId = parent.children[idx-1];
+  parent.children.splice(idx,1);
+  const newParent = p.nodes[newParentId];
+  newParent.children.push(id); newParent.collapsed=false;
+  node.parentId = newParentId;
+  return true;
+}
+function reparent(p,id,newParentId,index){
+  const node=p.nodes[id]; if(!node||!node.parentId) return false;
+  if(id===newParentId) return false;
+  if(isDescendant(p,id,newParentId)) return false;
+  const oldParent=p.nodes[node.parentId];
+  oldParent.children = oldParent.children.filter(cid=>cid!==id);
+  const newParent=p.nodes[newParentId];
+  if(typeof index==='number' && index>=0 && index<=newParent.children.length) newParent.children.splice(index,0,id);
+  else newParent.children.push(id);
+  newParent.collapsed=false;
+  node.parentId = newParentId;
+  return true;
+}
+function reorderWithinParent(p,id,index){
+  const node=p.nodes[id]; if(!node||!node.parentId) return false;
+  const parent=p.nodes[node.parentId]; const cur=parent.children.indexOf(id);
+  if(cur===-1) return false;
+  parent.children.splice(cur,1);
+  let idx=index; if(idx>cur) idx-=1;
+  idx=Math.max(0,Math.min(idx,parent.children.length));
+  parent.children.splice(idx,0,id);
+  return true;
+}
+function flatten(p,opts){
+  opts=opts||{}; const respectCollapsed=!!opts.respectCollapsed; const out=[];
+  (function walk(id,level){
+    const node=p.nodes[id]; out.push({node,level});
+    if(respectCollapsed && node.collapsed) return;
+    node.children.forEach(cid=>walk(cid,level+1));
+  })(p.rootId,0);
+  return out;
+}
+function countNodes(p){ return Object.keys(p.nodes).length; }
+function computeLayout(p,opts){
+  opts=opts||{}; const COL=opts.colWidth||210, ROW=opts.rowHeight||130;
+  let nextX=0;
+  function place(id,depth){
+    const node=p.nodes[id]; const y=depth*ROW;
+    const vis = node.collapsed ? [] : node.children;
+    let x;
+    if(vis.length===0){ x=nextX*COL; nextX+=1; }
+    else { const xs=vis.map(cid=>place(cid,depth+1)); x=(xs[0]+xs[xs.length-1])/2; }
+    node._autoX=x; node._autoY=y;
+    node._layoutX = node.manualX!=null ? node.manualX : x;
+    node._layoutY = node.manualY!=null ? node.manualY : y;
+    return x;
+  }
+  place(p.rootId,0);
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  Object.values(p.nodes).forEach(n=>{
+    if(n._layoutX<minX)minX=n._layoutX; if(n._layoutX>maxX)maxX=n._layoutX;
+    if(n._layoutY<minY)minY=n._layoutY; if(n._layoutY>maxY)maxY=n._layoutY;
+  });
+  return {minX,maxX,minY,maxY};
+}
+function cloneProject(p){ return JSON.parse(JSON.stringify(p)); }
+function searchNodes(p,query){
+  const q=(query||'').trim().toLowerCase(); if(!q) return [];
+  const results=[];
+  Object.values(p.nodes).forEach(n=>{
+    if((n.code&&n.code.toLowerCase().includes(q)) || (n.name&&n.name.toLowerCase().includes(q))) results.push(n.id);
+  });
+  return results;
+}
+
+/* --------------------------- ZIP / DOCX builder --------------------------- */
+const CRC_TABLE=(()=>{ let c,t=[]; for(let n=0;n<256;n++){ c=n; for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); t[n]=c>>>0; } return t; })();
+function crc32(bytes){ let crc=0xFFFFFFFF; for(let i=0;i<bytes.length;i++) crc=CRC_TABLE[(crc^bytes[i])&0xFF]^(crc>>>8); return (crc^0xFFFFFFFF)>>>0; }
+function strToBytes(str){ return new TextEncoder().encode(str); }
+function concatBytes(arrays){ let total=0; for(const a of arrays) total+=a.length; const out=new Uint8Array(total); let off=0; for(const a of arrays){ out.set(a,off); off+=a.length; } return out; }
+function buildZip(files){
+  const parts=[]; const centralParts=[]; let offset=0; const time=0,date=0x21;
+  for(const f of files){
+    const nameBytes=strToBytes(f.name); const data=f.data; const crc=crc32(data); const size=data.length;
+    const local=new Uint8Array(30); const lv=new DataView(local.buffer);
+    lv.setUint32(0,0x04034b50,true); lv.setUint16(4,20,true); lv.setUint16(6,0,true); lv.setUint16(8,0,true);
+    lv.setUint16(10,time,true); lv.setUint16(12,date,true); lv.setUint32(14,crc,true);
+    lv.setUint32(18,size,true); lv.setUint32(22,size,true); lv.setUint16(26,nameBytes.length,true); lv.setUint16(28,0,true);
+    parts.push(local,nameBytes,data);
+    const central=new Uint8Array(46); const cv=new DataView(central.buffer);
+    cv.setUint32(0,0x02014b50,true); cv.setUint16(4,20,true); cv.setUint16(6,20,true); cv.setUint16(8,0,true); cv.setUint16(10,0,true);
+    cv.setUint16(12,time,true); cv.setUint16(14,date,true); cv.setUint32(16,crc,true);
+    cv.setUint32(20,size,true); cv.setUint32(24,size,true); cv.setUint16(28,nameBytes.length,true);
+    cv.setUint16(30,0,true); cv.setUint16(32,0,true); cv.setUint16(34,0,true); cv.setUint16(36,0,true);
+    cv.setUint32(38,0,true); cv.setUint32(42,offset,true);
+    centralParts.push(central,nameBytes);
+    offset += local.length+nameBytes.length+data.length;
+  }
+  const centralStart=offset; let centralSize=0; for(const p of centralParts) centralSize+=p.length;
+  const end=new Uint8Array(22); const ev=new DataView(end.buffer);
+  ev.setUint32(0,0x06054b50,true); ev.setUint16(4,0,true); ev.setUint16(6,0,true);
+  ev.setUint16(8,files.length,true); ev.setUint16(10,files.length,true);
+  ev.setUint32(12,centralSize,true); ev.setUint32(16,centralStart,true); ev.setUint16(20,0,true);
+  return concatBytes([...parts,...centralParts,end]);
+}
+function xmlEscape(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function buildDocxBytes(title, flatNodes){
+  let body = `<w:p><w:pPr><w:pStyle w:val="Title"/></w:pPr><w:r><w:t>${xmlEscape(title)}</w:t></w:r></w:p>`;
+  for(const {level,node:n} of flatNodes){
+    const indent=360*level; const bold = level<=1 ? '<w:b/>' : ''; const sz = level===0?28:(level===1?24:22);
+    const qtyStr = (n.qty!=='' && n.qty!=null) ? `  (Qtd: ${n.qty}${n.unit?' '+n.unit:''})` : '';
+    body += `<w:p><w:pPr><w:ind w:left="${indent}"/></w:pPr><w:r><w:rPr>${bold}<w:sz w:val="${sz}"/></w:rPr><w:t xml:space="preserve">${xmlEscape(n.code?n.code+' - ':'')}${xmlEscape(n.name)}${xmlEscape(qtyStr)}</w:t></w:r></w:p>`;
+    if(n.desc) body += `<w:p><w:pPr><w:ind w:left="${indent}"/></w:pPr><w:r><w:rPr><w:i/><w:sz w:val="18"/></w:rPr><w:t xml:space="preserve">${xmlEscape(n.desc)}</w:t></w:r></w:p>`;
+  }
+  body += `<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblBorders>
+  <w:top w:val="single" w:sz="4" w:space="0" w:color="999999"/><w:left w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+  <w:bottom w:val="single" w:sz="4" w:space="0" w:color="999999"/><w:right w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+  <w:insideH w:val="single" w:sz="4" w:space="0" w:color="999999"/><w:insideV w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+  </w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="800"/><w:gridCol w:w="1600"/><w:gridCol w:w="3600"/><w:gridCol w:w="1200"/><w:gridCol w:w="2800"/></w:tblGrid>`;
+  const headerRow=['Nível','Código','Nome','Qtd','Descrição'];
+  body += '<w:tr>'+headerRow.map(h=>`<w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>${xmlEscape(h)}</w:t></w:r></w:p></w:tc>`).join('')+'</w:tr>';
+  for(const {level,node:n} of flatNodes){
+    const row=[String(level), n.code||'', n.name||'', (n.qty!=null?String(n.qty)+(n.unit?' '+n.unit:''):''), n.desc||''];
+    body += '<w:tr>'+row.map(v=>`<w:tc><w:p><w:r><w:t xml:space="preserve">${xmlEscape(v)}</w:t></w:r></w:p></w:tc>`).join('')+'</w:tr>';
+  }
+  body += '</w:tbl><w:p/>';
+  body += '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1417" w:right="1417" w:bottom="1417" w:left="1417"/></w:sectPr>';
+  const docXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}</w:body></w:document>`;
+  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>`;
+  const rootRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>`;
+  const docRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+  const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:pPr/><w:rPr><w:b/><w:sz w:val="36"/></w:rPr></w:style></w:styles>`;
+  const isoDate = new Date().toISOString().replace(/\.\d+Z$/,'Z');
+  const coreProps = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>${xmlEscape(title)}</dc:title><dc:creator>Estrutura de Produto (EPC)</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${isoDate}</dcterms:created></cp:coreProperties>`;
+  const files=[
+    {name:'[Content_Types].xml', data:strToBytes(contentTypes)},
+    {name:'_rels/.rels', data:strToBytes(rootRels)},
+    {name:'docProps/core.xml', data:strToBytes(coreProps)},
+    {name:'word/document.xml', data:strToBytes(docXml)},
+    {name:'word/_rels/document.xml.rels', data:strToBytes(docRels)},
+    {name:'word/styles.xml', data:strToBytes(styles)},
+  ];
+  return buildZip(files);
+}
+
+/* --------------------------- Estado da aplicação --------------------------- */
+const COLOR_MAP = {
+  eletrico: {hex:'#2D5F8A', label:'Elétrico'},
+  mecanico: {hex:'#B8722A', label:'Mecânico'},
+  firmware: {hex:'#3C7A5C', label:'Firmware'},
+  comprado: {hex:'#725A93', label:'Comprado'}
+};
+const UNITS = ['un','pç','conjunto','par','m','mm','m²','m³','kg','g','L','mL'];
+const NODE_W = 176, NODE_H = 64;
+const STORAGE_INDEX = 'epc_projects_index';
+const STORAGE_PREFIX = 'epc_project_';
+
+const state = {
+  project: null,
+  selectedId: null,
+  zoom: 1, panX: 60, panY: 40,
+  history: [], future: [],
+  dirty: false,
+  dragNode: null,     // {id, startClientX, startClientY, startX, startY, moved, rafPending}
+  dragOutline: null,  // id being dragged in outline
+  panDrag: null,
+  searchQuery: '',
+  searchResults: [],
+  searchIndex: -1
+};
+
+function $(sel, root){ return (root||document).querySelector(sel); }
+function $all(sel, root){ return Array.from((root||document).querySelectorAll(sel)); }
+const SVGNS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs){
+  const el = document.createElementNS(SVGNS, tag);
+  if(attrs) for(const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+function isMobileLayout(){ return window.matchMedia('(max-width:880px)').matches; }
+
+/* --------------------------- Persistência --------------------------- */
+function loadIndex(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_INDEX) || '[]'); }catch(e){ return []; }
+}
+function saveIndex(idx){
+  try{ localStorage.setItem(STORAGE_INDEX, JSON.stringify(idx)); }catch(e){}
+}
+function persistCurrentProject(){
+  if(!state.project) return;
+  state.project.updatedAt = Date.now();
+  try{
+    localStorage.setItem(STORAGE_PREFIX + state.project.id, JSON.stringify(state.project));
+    const idx = loadIndex();
+    const existing = idx.find(e=>e.id===state.project.id);
+    if(existing){ existing.name = state.project.name; existing.updatedAt = state.project.updatedAt; }
+    else idx.push({id:state.project.id, name:state.project.name, updatedAt:state.project.updatedAt});
+    saveIndex(idx);
+    setDirty(false);
+  }catch(e){
+    toast('Não foi possível salvar automaticamente (armazenamento local indisponível).');
+  }
+}
+function loadProject(id){
+  try{
+    const raw = localStorage.getItem(STORAGE_PREFIX + id);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch(e){ return null; }
+}
+function deleteStoredProject(id){
+  try{
+    localStorage.removeItem(STORAGE_PREFIX + id);
+    saveIndex(loadIndex().filter(e=>e.id!==id));
+  }catch(e){}
+}
+
+let autosaveTimer = null;
+function setDirty(v){
+  state.dirty = v;
+  const el = $('#saveStatus');
+  const txt = $('#saveStatusText');
+  if(v){ el.classList.add('dirty'); txt.textContent = 'alterações não salvas…'; }
+  else { el.classList.remove('dirty'); txt.textContent = 'salvo ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
+}
+function scheduleAutosave(){
+  setDirty(true);
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(persistCurrentProject, 700);
+}
+function flushAutosave(){
+  clearTimeout(autosaveTimer);
+  autosaveTimer = null;
+  if(state.dirty) persistCurrentProject();
+}
+
+/* --------------------------- Histórico (undo/redo) --------------------------- */
+function pushHistory(){
+  state.history.push(cloneProject(state.project));
+  if(state.history.length > 60) state.history.shift();
+  state.future = [];
+}
+function undo(){
+  if(!state.history.length) return;
+  state.future.push(cloneProject(state.project));
+  state.project = state.history.pop();
+  if(!state.project.nodes[state.selectedId]) state.selectedId = null;
+  scheduleAutosave();
+  renderAll();
+}
+function redo(){
+  if(!state.future.length) return;
+  state.history.push(cloneProject(state.project));
+  state.project = state.future.pop();
+  if(!state.project.nodes[state.selectedId]) state.selectedId = null;
+  scheduleAutosave();
+  renderAll();
+}
+
+/* --------------------------- Toast --------------------------- */
+function toast(msg){
+  const wrap = $('#toastWrap');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  wrap.appendChild(t);
+  requestAnimationFrame(()=>t.classList.add('show'));
+  setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(), 250); }, 2200);
+}
+
+/* --------------------------- Modal --------------------------- */
+function openModal(title, bodyEl, footButtons){
+  $('#modalTitle').textContent = title;
+  const body = $('#modalBody'); body.innerHTML=''; body.appendChild(bodyEl);
+  const foot = $('#modalFoot'); foot.innerHTML='';
+  (footButtons||[]).forEach(b=>{
+    const btn = document.createElement('button');
+    btn.className = 'btn' + (b.primary?' primary':'') + (b.danger?' danger':'');
+    btn.textContent = b.label;
+    btn.onclick = b.onClick;
+    foot.appendChild(btn);
+  });
+  $('#modalOverlay').classList.add('open');
+}
+function closeModal(){ $('#modalOverlay').classList.remove('open'); }
+$('#modalClose').onclick = closeModal;
+$('#modalOverlay').addEventListener('click', e=>{ if(e.target.id==='modalOverlay') closeModal(); });
+
+/* --------------------------- Text measuring / wrap --------------------------- */
+const _mcanvas = document.createElement('canvas');
+const _mctx = _mcanvas.getContext('2d');
+function measureText(text, font){ _mctx.font = font; return _mctx.measureText(text).width; }
+function wrapText(text, font, maxWidth, maxLines){
+  const words = (text||'').split(/\s+/).filter(Boolean);
+  const lines = []; let cur=''; let i=0;
+  while(i<words.length){
+    const w = words[i];
+    const test = cur ? cur+' '+w : w;
+    if(measureText(test, font) <= maxWidth){ cur = test; i++; }
+    else if(cur){ lines.push(cur); cur=''; if(lines.length===maxLines) break; }
+    else {
+      let chunk=''; for(const ch of w){ if(measureText(chunk+ch,font)>maxWidth) break; chunk+=ch; }
+      lines.push(chunk||w[0]||''); cur=''; i++; if(lines.length===maxLines) break;
+    }
+  }
+  if(cur && lines.length<maxLines){ lines.push(cur); i=words.length; }
+  if(i<words.length && lines.length){
+    let last = lines[lines.length-1];
+    while(last.length>1 && measureText(last+'…',font)>maxWidth) last = last.slice(0,-1);
+    lines[lines.length-1] = last.replace(/[.,;:\s]+$/,'') + '…';
+  }
+  if(!lines.length) lines.push('');
+  return lines;
+}
+
+/* --------------------------- Painéis (recolher / mostrar) --------------------------- */
+function updatePaneToggles(){
+  const outlineCollapsed = $('#outlinePanel').classList.contains('collapsed');
+  const propsCollapsed = $('#propsPanel').classList.contains('collapsed');
+  $('#openOutlineTab').style.display = outlineCollapsed ? 'flex' : 'none';
+  $('#openPropsTab').style.display = propsCollapsed ? 'flex' : 'none';
+  if(isMobileLayout()) $('#mobileScrim').classList.toggle('show', !outlineCollapsed || !propsCollapsed);
+  else $('#mobileScrim').classList.remove('show');
+}
+function openPanel(which){
+  const panel = which==='outline' ? $('#outlinePanel') : $('#propsPanel');
+  panel.classList.remove('collapsed');
+  updatePaneToggles();
+}
+function closePanel(which){
+  const panel = which==='outline' ? $('#outlinePanel') : $('#propsPanel');
+  panel.classList.add('collapsed');
+  updatePaneToggles();
+}
+$('#toggleOutline').onclick = ()=>closePanel('outline');
+$('#togglePropsPanel').onclick = ()=>closePanel('props');
+$('#openOutlineTab').onclick = ()=>openPanel('outline');
+$('#openPropsTab').onclick = ()=>openPanel('props');
+$('#mobileScrim').addEventListener('click', ()=>{
+  $('#outlinePanel').classList.add('collapsed');
+  $('#propsPanel').classList.add('collapsed');
+  updatePaneToggles();
+});
+
+/* --------------------------- Seleção --------------------------- */
+function selectNode(id){
+  state.selectedId = id;
+  renderOutlineSelection();
+  renderDiagramSelection();
+  renderProps();
+  renderStatus();
+  if(id && isMobileLayout()) openPanel('props');
+}
+
+/* ============================= RENDER: OUTLINE ============================= */
+function renderOutline(){
+  const list = $('#outlineList');
+  list.innerHTML = '';
+  const flat = flatten(state.project, {respectCollapsed:true});
+  $('#outlineCount').textContent = countNodes(state.project) + ' itens';
+  if(!flat.length){ $('#outlineEmpty').style.display='block'; return; }
+
+  flat.forEach(({node, level})=>{
+    const row = document.createElement('div');
+    row.className = 'orow' + (node.id===state.selectedId?' selected':'') + (!node.parentId?' root-row':'');
+    row.dataset.id = node.id;
+    row.style.paddingLeft = (6 + level*16) + 'px';
+
+    if(state.searchQuery && state.searchResults.includes(node.id)){
+      row.classList.add('omatch');
+    }
+
+    const handle = document.createElement('span');
+    handle.className = 'ohandle'; handle.textContent = '⠿'; handle.draggable = true;
+    handle.title = 'Arraste para reorganizar';
+    handle.addEventListener('dragstart', e=>{
+      state.dragOutline = node.id;
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+      try{ e.dataTransfer.setData('text/plain', node.id); }catch(err){}
+    });
+    handle.addEventListener('dragend', ()=>{
+      row.classList.remove('dragging');
+      state.dragOutline = null;
+      $all('.orow').forEach(r=>r.classList.remove('drop-before','drop-after','drop-child'));
+    });
+    row.appendChild(handle);
+
+    const toggle = document.createElement('button');
+    toggle.className = 'otoggle' + (node.children.length? '' : ' spacer');
+    toggle.textContent = node.children.length ? (node.collapsed ? '▸' : '▾') : '';
+    toggle.onclick = (e)=>{ e.stopPropagation(); node.collapsed = !node.collapsed; pushHistory(); scheduleAutosave(); renderOutline(); renderDiagram(); };
+    row.appendChild(toggle);
+
+    if(node.color && COLOR_MAP[node.color]){
+      const sw = document.createElement('span');
+      sw.className='oswatch'; sw.style.background = COLOR_MAP[node.color].hex;
+      row.appendChild(sw);
+    }
+
+    const codeInput = document.createElement('input');
+    codeInput.className='ocode'; codeInput.value = node.code; codeInput.placeholder='código';
+    codeInput.spellcheck = false;
+    codeInput.addEventListener('input', ()=>{ node.code = codeInput.value; syncNodeLabel(node.id); scheduleAutosave(); });
+    codeInput.addEventListener('change', ()=>{ pushHistory(); scheduleAutosave(); renderProps(); });
+    codeInput.addEventListener('click', e=>e.stopPropagation());
+    row.appendChild(codeInput);
+
+    const nameInput = document.createElement('input');
+    nameInput.className='oname'; nameInput.value = node.name; nameInput.placeholder='nome do item';
+    nameInput.spellcheck = false;
+    nameInput.addEventListener('input', ()=>{ node.name = nameInput.value; syncNodeLabel(node.id); scheduleAutosave(); });
+    nameInput.addEventListener('change', ()=>{ pushHistory(); scheduleAutosave(); renderProps(); });
+    nameInput.addEventListener('click', e=>e.stopPropagation());
+    nameInput.addEventListener('keydown', e=>{
+      if(e.key==='Tab'){
+        e.preventDefault(); pushHistory();
+        if(e.shiftKey) promote(state.project, node.id); else demote(state.project, node.id);
+        scheduleAutosave(); renderAll(); focusOutlineRow(node.id,'name');
+      } else if(e.key==='Enter'){
+        e.preventDefault(); pushHistory();
+        const created = addSiblingAfter(state.project, node.id, {});
+        scheduleAutosave(); selectNode(created.id); renderAll(); focusOutlineRow(created.id,'name');
+      }
+    });
+    row.appendChild(nameInput);
+
+    const btns = document.createElement('div'); btns.className='orowbtns';
+    const addBtn = document.createElement('button'); addBtn.className='oibtn'; addBtn.textContent='＋'; addBtn.title='Adicionar filho';
+    addBtn.onclick = (e)=>{ e.stopPropagation(); pushHistory(); const created = addChild(state.project, node.id,{}); scheduleAutosave(); selectNode(created.id); renderAll(); focusOutlineRow(created.id,'name'); };
+    const delBtn = document.createElement('button'); delBtn.className='oibtn danger'; delBtn.textContent='✕'; delBtn.title='Excluir';
+    delBtn.onclick = (e)=>{ e.stopPropagation(); requestDelete(node.id); };
+    btns.appendChild(addBtn);
+    if(node.parentId) btns.appendChild(delBtn);
+    row.appendChild(btns);
+
+    row.addEventListener('click', ()=> selectNode(node.id));
+
+    row.addEventListener('dragover', e=>{
+      if(!state.dragOutline) return;
+      e.preventDefault();
+      const rect = row.getBoundingClientRect();
+      const rel = (e.clientY - rect.top) / rect.height;
+      $all('.orow').forEach(r=>{ if(r!==row) r.classList.remove('drop-before','drop-after','drop-child'); });
+      row.classList.remove('drop-before','drop-after','drop-child');
+      if(rel < 0.25) row.classList.add('drop-before');
+      else if(rel > 0.75) row.classList.add('drop-after');
+      else row.classList.add('drop-child');
+    });
+    row.addEventListener('drop', e=>{
+      e.preventDefault();
+      const dragId = state.dragOutline;
+      row.classList.remove('drop-before','drop-after','drop-child');
+      if(!dragId || dragId===node.id) return;
+      if(isDescendant(state.project, dragId, node.id)) { toast('Não é possível mover um item para dentro de si mesmo.'); return; }
+      const rect = row.getBoundingClientRect();
+      const rel = (e.clientY - rect.top) / rect.height;
+      pushHistory();
+      if(rel < 0.25){
+        if(node.parentId){
+          const parent = state.project.nodes[node.parentId];
+          const idx = parent.children.indexOf(node.id);
+          reparent(state.project, dragId, parent.id, idx);
+        }
+      } else if(rel > 0.75){
+        if(node.parentId){
+          const parent = state.project.nodes[node.parentId];
+          const idx = parent.children.indexOf(node.id);
+          reparent(state.project, dragId, parent.id, idx+1);
+        }
+      } else {
+        reparent(state.project, dragId, node.id);
+      }
+      scheduleAutosave(); renderAll();
+    });
+
+    list.appendChild(row);
+  });
+}
+function focusOutlineRow(id, field){
+  requestAnimationFrame(()=>{
+    const row = $(`.orow[data-id="${id}"]`);
+    if(!row) return;
+    if(typeof row.scrollIntoView === 'function') row.scrollIntoView({block:'nearest'});
+    const input = row.querySelector(field==='code' ? '.ocode' : '.oname');
+    if(input){ input.focus(); input.select(); }
+  });
+}
+function renderOutlineSelection(){
+  $all('.orow').forEach(r=>r.classList.toggle('selected', r.dataset.id===state.selectedId));
+}
+function syncNodeLabel(id){
+  // Live-update diagram text for this node without a full relayout/rerender (cheap visual feedback).
+  const g = $(`.nbox[data-id="${id}"]`);
+  const node = state.project.nodes[id];
+  if(!g || !node) { return; }
+  renderDiagram(); // simplicity & correctness over micro-optimization
+}
+
+/* ============================= RENDER: DIAGRAM ============================= */
+function applyViewportTransform(){
+  $('#viewport').setAttribute('transform', `translate(${state.panX},${state.panY}) scale(${state.zoom})`);
+  $('#zoomLabel').textContent = Math.round(state.zoom*100) + '%';
+}
+function renderDiagram(){
+  computeLayout(state.project);
+  const edges = $('#edgesLayer'); const nodesLayer = $('#nodesLayer');
+  edges.innerHTML = ''; nodesLayer.innerHTML = '';
+  const flat = flatten(state.project, {respectCollapsed:true});
+  const visibleIds = new Set(flat.map(f=>f.node.id));
+
+  // edges
+  flat.forEach(({node})=>{
+    if(!node.parentId || !visibleIds.has(node.parentId)) return;
+    const parent = state.project.nodes[node.parentId];
+    const px = parent._layoutX, py = parent._layoutY + NODE_H;
+    const cx = node._layoutX, cy = node._layoutY;
+    const midY = py + (cy-py)/2;
+    const d = `M ${px} ${py} L ${px} ${midY} L ${cx} ${midY} L ${cx} ${cy}`;
+    edges.appendChild(svgEl('path', {class:'edge', d}));
+  });
+
+  // nodes
+  flat.forEach(({node})=>{
+    const x = node._layoutX - NODE_W/2, y = node._layoutY;
+    const g = svgEl('g', {class:'nbox' + (!node.parentId?' root':'') + (node.id===state.selectedId?' selected':''), 'data-id':node.id, transform:`translate(${x},${y})`});
+
+    const rect = svgEl('rect', {class:'box', width:NODE_W, height:NODE_H, rx:3, ry:3});
+    g.appendChild(rect);
+
+    if(node.color && COLOR_MAP[node.color]){
+      g.appendChild(svgEl('rect', {x:0,y:0,width:5,height:NODE_H,fill:COLOR_MAP[node.color].hex}));
+    }
+
+    if(node.code){
+      const codeT = svgEl('text', {class:'codeText', x:12, y:16});
+      codeT.textContent = node.code;
+      g.appendChild(codeT);
+    }
+
+    const nameLines = wrapText(node.name || '(sem nome)', '700 12.5px ' + getComputedStyle(document.body).fontFamily, NODE_W-22, 2);
+    const nameStartY = node.code ? 32 : 24;
+    nameLines.forEach((line,i)=>{
+      const t = svgEl('text', {class:'nameText', x:12, y: nameStartY + i*15});
+      t.textContent = line;
+      g.appendChild(t);
+    });
+
+    if(node.qty!=null && node.qty!==''){
+      const label = String(node.qty) + (node.unit?(' '+node.unit):'');
+      const w = Math.max(28, measureText(label, '9.5px ' + getComputedStyle(document.body).fontFamily) + 12);
+      const bg = svgEl('g', {class:'qtyBadge', transform:`translate(${NODE_W-w-6},${NODE_H-20})`});
+      bg.appendChild(svgEl('rect', {width:w, height:15, rx:2}));
+      const bt = svgEl('text', {x:w/2, y:11, 'text-anchor':'middle'});
+      bt.textContent = label;
+      bg.appendChild(bt);
+      g.appendChild(bg);
+    }
+
+    if(node.children.length){
+      const tg = svgEl('g', {class:'toggleBtn', transform:`translate(${NODE_W/2},${NODE_H})`, style:'cursor:pointer;'});
+      tg.appendChild(svgEl('circle', {r:8}));
+      const tt = svgEl('text', {y:0.5});
+      tt.textContent = node.collapsed ? '+' : '–';
+      tg.appendChild(tt);
+      tg.addEventListener('click', e=>{ e.stopPropagation(); node.collapsed=!node.collapsed; pushHistory(); scheduleAutosave(); renderAll(); });
+      g.appendChild(tg);
+      if(node.collapsed){
+        const total = (function count(nid){ const n=state.project.nodes[nid]; return n.children.reduce((s,c)=>s+1+count(c),0); })(node.id);
+        const hc = svgEl('text', {class:'hiddenCount', x:NODE_W/2, y:NODE_H+22, 'text-anchor':'middle'});
+        hc.textContent = total + (total===1?' item oculto':' itens ocultos');
+        g.appendChild(hc);
+      }
+    }
+
+    const addG = svgEl('g', {class:'addBtn', transform:`translate(${NODE_W+14},${NODE_H/2})`, style:'cursor:pointer;'});
+    addG.appendChild(svgEl('circle', {r:9}));
+    const addT = svgEl('text', {y:1});
+    addT.textContent = '+';
+    addG.appendChild(addT);
+    addG.addEventListener('click', e=>{ e.stopPropagation(); pushHistory(); const created = addChild(state.project, node.id, {}); scheduleAutosave(); selectNode(created.id); renderAll(); focusOutlineRow(created.id,'name'); });
+    g.appendChild(addG);
+
+    g.addEventListener('click', e=>{ if(state.dragNode && state.dragNode.moved) return; selectNode(node.id); });
+    g.addEventListener('dblclick', e=>{ e.stopPropagation(); focusOutlineRow(node.id,'name'); });
+    g.addEventListener('mousedown', e=>{
+      if(e.button!==0) return;
+      if(e.target.closest('.addBtn') || e.target.closest('.toggleBtn')) return;
+      e.stopPropagation();
+      startNodeDrag(node.id, e.clientX, e.clientY);
+    });
+
+    nodesLayer.appendChild(g);
+  });
+
+  renderLegend();
+  applyViewportTransform();
+}
+function renderDiagramSelection(){
+  $all('.nbox').forEach(g=>g.classList.toggle('selected', g.dataset.id===state.selectedId));
+}
+function renderLegend(){
+  const used = new Set();
+  Object.values(state.project.nodes).forEach(n=>{ if(n.color) used.add(n.color); });
+  const legend = $('#legend');
+  if(!used.size){ legend.style.display='none'; legend.innerHTML=''; return; }
+  legend.style.display='flex'; legend.innerHTML='';
+  used.forEach(key=>{
+    const info = COLOR_MAP[key]; if(!info) return;
+    const item = document.createElement('div'); item.className='litem';
+    const sw = document.createElement('span'); sw.className='lsw'; sw.style.background = info.hex;
+    const lb = document.createElement('span'); lb.textContent = info.label;
+    item.appendChild(sw); item.appendChild(lb);
+    legend.appendChild(item);
+  });
+}
+
+/* --------------------------- Pan / Zoom / Drag no canvas (mouse + toque) --------------------------- */
+const canvasWrap = $('#canvasWrap');
+const canvasSvg = $('#canvas');
+let pinchState = null;
+
+function startPan(clientX, clientY){
+  state.panDrag = {startX:clientX, startY:clientY, panX0:state.panX, panY0:state.panY};
+  canvasWrap.classList.add('panning');
+  selectNode(null);
+}
+function movePan(clientX, clientY){
+  if(!state.panDrag) return;
+  state.panX = state.panDrag.panX0 + (clientX - state.panDrag.startX);
+  state.panY = state.panDrag.panY0 + (clientY - state.panDrag.startY);
+  applyViewportTransform();
+}
+function endPan(){
+  if(state.panDrag){ state.panDrag=null; canvasWrap.classList.remove('panning'); }
+}
+function startNodeDrag(id, clientX, clientY){
+  const node = state.project.nodes[id];
+  if(!node) return;
+  selectNode(id);
+  state.dragNode = {
+    id, moved:false, rafPending:false,
+    startClientX:clientX, startClientY:clientY,
+    startX: node._layoutX, startY: node._layoutY
+  };
+}
+function moveNodeDrag(clientX, clientY){
+  const dn = state.dragNode; if(!dn) return;
+  const dx = (clientX - dn.startClientX)/state.zoom;
+  const dy = (clientY - dn.startClientY)/state.zoom;
+  if(Math.abs(dx)>2 || Math.abs(dy)>2) dn.moved = true;
+  if(dn.moved){
+    const node = state.project.nodes[dn.id];
+    node.manualX = dn.startX + dx;
+    node.manualY = dn.startY + dy;
+    canvasWrap.classList.add('node-dragging');
+    if(!dn.rafPending){
+      dn.rafPending = true;
+      requestAnimationFrame(()=>{ dn.rafPending=false; if(state.dragNode===dn) renderDiagram(); });
+    }
+  }
+}
+function endNodeDrag(){
+  if(state.dragNode){
+    if(state.dragNode.moved){ pushHistory(); scheduleAutosave(); updateActionAvailability(); }
+    state.dragNode = null;
+    canvasWrap.classList.remove('node-dragging');
+  }
+}
+
+canvasWrap.addEventListener('wheel', e=>{
+  e.preventDefault();
+  const rect = canvasSvg.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const delta = e.deltaY < 0 ? 1.12 : 1/1.12;
+  const newZoom = Math.max(0.2, Math.min(2.5, state.zoom*delta));
+  const wx = (mx - state.panX)/state.zoom, wy = (my - state.panY)/state.zoom;
+  state.panX = mx - wx*newZoom; state.panY = my - wy*newZoom;
+  state.zoom = newZoom;
+  applyViewportTransform();
+}, {passive:false});
+
+canvasWrap.addEventListener('mousedown', e=>{
+  if(e.button!==0) return;
+  if(e.target.closest('.nbox')) return;
+  startPan(e.clientX, e.clientY);
+});
+window.addEventListener('mousemove', e=>{
+  movePan(e.clientX, e.clientY);
+  moveNodeDrag(e.clientX, e.clientY);
+});
+window.addEventListener('mouseup', ()=>{ endPan(); endNodeDrag(); });
+
+/* Toque: um dedo arrasta (pan ou item); dois dedos fazem pinça de zoom. */
+canvasWrap.addEventListener('touchstart', e=>{
+  if(e.touches.length===2){
+    endPan(); endNodeDrag();
+    const [t1,t2] = e.touches;
+    pinchState = {
+      dist: Math.hypot(t2.clientX-t1.clientX, t2.clientY-t1.clientY),
+      midX:(t1.clientX+t2.clientX)/2, midY:(t1.clientY+t2.clientY)/2,
+      zoom0: state.zoom, panX0: state.panX, panY0: state.panY
+    };
+    e.preventDefault();
+    return;
+  }
+  if(e.touches.length===1){
+    const t = e.touches[0];
+    const target = document.elementFromPoint(t.clientX, t.clientY);
+    if(target && (target.closest('.addBtn') || target.closest('.toggleBtn'))) return; // deixa o clique nativo acontecer
+    e.preventDefault();
+    const nboxEl = target && target.closest('.nbox');
+    if(nboxEl) startNodeDrag(nboxEl.dataset.id, t.clientX, t.clientY);
+    else startPan(t.clientX, t.clientY);
+  }
+}, {passive:false});
+canvasWrap.addEventListener('touchmove', e=>{
+  if(pinchState && e.touches.length===2){
+    e.preventDefault();
+    const [t1,t2] = e.touches;
+    const dist = Math.hypot(t2.clientX-t1.clientX, t2.clientY-t1.clientY);
+    const scale = dist / pinchState.dist;
+    const rect = canvasSvg.getBoundingClientRect();
+    const mx = pinchState.midX - rect.left, my = pinchState.midY - rect.top;
+    const newZoom = Math.max(0.2, Math.min(2.5, pinchState.zoom0*scale));
+    const wx = (mx - pinchState.panX0)/pinchState.zoom0, wy = (my - pinchState.panY0)/pinchState.zoom0;
+    state.panX = mx - wx*newZoom; state.panY = my - wy*newZoom;
+    state.zoom = newZoom;
+    applyViewportTransform();
+    return;
+  }
+  if(e.touches.length===1){
+    if(state.dragNode || state.panDrag) e.preventDefault();
+    const t = e.touches[0];
+    moveNodeDrag(t.clientX, t.clientY);
+    movePan(t.clientX, t.clientY);
+  }
+}, {passive:false});
+canvasWrap.addEventListener('touchend', e=>{
+  if(e.touches.length<2) pinchState=null;
+  if(e.touches.length===0){ endPan(); endNodeDrag(); }
+}, {passive:false});
+canvasWrap.addEventListener('touchcancel', ()=>{ pinchState=null; endPan(); endNodeDrag(); });
+
+function zoomBy(f){
+  const rect = canvasSvg.getBoundingClientRect();
+  const mx = rect.width/2, my = rect.height/2;
+  const newZoom = Math.max(0.2, Math.min(2.5, state.zoom*f));
+  const wx = (mx-state.panX)/state.zoom, wy=(my-state.panY)/state.zoom;
+  state.panX = mx - wx*newZoom; state.panY = my - wy*newZoom;
+  state.zoom = newZoom;
+  applyViewportTransform();
+}
+function zoomFit(){
+  const b = computeLayout(state.project);
+  const rect = canvasSvg.getBoundingClientRect();
+  const contentW = (b.maxX - b.minX) + NODE_W + 80;
+  const contentH = (b.maxY - b.minY) + NODE_H + 80;
+  const z = Math.max(0.2, Math.min(1.4, Math.min(rect.width/contentW, rect.height/contentH)));
+  state.zoom = z;
+  state.panX = rect.width/2 - ((b.minX+b.maxX)/2)*z;
+  state.panY = 40 - b.minY*z;
+  applyViewportTransform();
+}
+function zoomReset(){ state.zoom=1; state.panX=60; state.panY=40; applyViewportTransform(); }
+function panToNode(id){
+  const node = state.project.nodes[id]; if(!node || node._layoutX==null) return;
+  const rect = canvasSvg.getBoundingClientRect();
+  state.panX = rect.width/2 - node._layoutX*state.zoom;
+  state.panY = rect.height/2 - node._layoutY*state.zoom;
+  applyViewportTransform();
+}
+
+$('#zIn').onclick = ()=>zoomBy(1.2);
+$('#zOut').onclick = ()=>zoomBy(1/1.2);
+$('#zFit').onclick = zoomFit;
+$('#z100').onclick = zoomReset;
+
+/* ============================= RENDER: PROPRIEDADES ============================= */
+function renderProps(){
+  const body = $('#propsBody');
+  body.innerHTML='';
+  const node = state.selectedId ? state.project.nodes[state.selectedId] : null;
+  if(!node){
+    const empty = document.createElement('div');
+    empty.id='propsEmpty';
+    empty.innerHTML = 'Selecione um item na estrutura ou no diagrama<br>para editar seus detalhes.';
+    body.appendChild(empty);
+    return;
+  }
+
+  const header = document.createElement('div');
+  const title = document.createElement('p'); title.id='propsHeaderTitle'; title.textContent = node.name || '(sem nome)';
+  const codeLine = document.createElement('p'); codeLine.id='propsHeaderCode'; codeLine.textContent = node.code || '— sem código —';
+  header.appendChild(title); header.appendChild(codeLine);
+  body.appendChild(header);
+
+  // breadcrumb
+  const path = [];
+  let cur = node;
+  while(cur){ path.unshift(cur.name || '(sem nome)'); cur = cur.parentId ? state.project.nodes[cur.parentId] : null; }
+  const bc = document.createElement('div'); bc.className='breadcrumb'; bc.textContent = path.join(' › ');
+  body.appendChild(bc);
+
+  function field(labelText, inputEl){
+    const f = document.createElement('div'); f.className='field';
+    const l = document.createElement('label'); l.textContent = labelText;
+    f.appendChild(l); f.appendChild(inputEl);
+    return f;
+  }
+
+  const codeInput = document.createElement('input'); codeInput.type='text'; codeInput.className='mono'; codeInput.value=node.code;
+  codeInput.oninput = ()=>{ node.code=codeInput.value; codeLine.textContent = node.code || '— sem código —'; scheduleAutosave(); };
+  codeInput.onchange = ()=>{ pushHistory(); scheduleAutosave(); renderOutline(); renderDiagram(); };
+  body.appendChild(field('Código / PN', codeInput));
+
+  const nameInput = document.createElement('input'); nameInput.type='text'; nameInput.value=node.name;
+  nameInput.oninput = ()=>{ node.name=nameInput.value; title.textContent = node.name || '(sem nome)'; scheduleAutosave(); };
+  nameInput.onchange = ()=>{ pushHistory(); scheduleAutosave(); renderOutline(); renderDiagram(); };
+  body.appendChild(field('Nome do item', nameInput));
+
+  const inlineWrap = document.createElement('div'); inlineWrap.className='field inline';
+  const qtyDiv = document.createElement('div');
+  const qtyLbl = document.createElement('label'); qtyLbl.textContent='Quantidade';
+  const qtyInput = document.createElement('input'); qtyInput.type='number'; qtyInput.step='any'; qtyInput.value=node.qty;
+  qtyInput.oninput = ()=>{ node.qty = qtyInput.value===''? '' : Number(qtyInput.value); scheduleAutosave(); };
+  qtyInput.onchange = ()=>{ pushHistory(); scheduleAutosave(); renderDiagram(); };
+  qtyDiv.appendChild(qtyLbl); qtyDiv.appendChild(qtyInput);
+  const unitDiv = document.createElement('div');
+  const unitLbl = document.createElement('label'); unitLbl.textContent='Unidade';
+  const unitSel = document.createElement('select');
+  UNITS.forEach(u=>{ const o=document.createElement('option'); o.value=u; o.textContent=u; if(u===node.unit) o.selected=true; unitSel.appendChild(o); });
+  unitSel.onchange = ()=>{ node.unit=unitSel.value; pushHistory(); scheduleAutosave(); renderDiagram(); };
+  unitDiv.appendChild(unitLbl); unitDiv.appendChild(unitSel);
+  inlineWrap.appendChild(qtyDiv); inlineWrap.appendChild(unitDiv);
+  body.appendChild(inlineWrap);
+
+  const catField = document.createElement('div'); catField.className='field';
+  const catLbl = document.createElement('label'); catLbl.textContent='Categoria';
+  const sw = document.createElement('div'); sw.className='colorSwatches';
+  const noneBtn = document.createElement('div'); noneBtn.className='cswatch'+(!node.color?' active':''); noneBtn.style.background='#DADAD4'; noneBtn.style.color='#5B6472'; noneBtn.textContent='—'; noneBtn.title='Sem categoria';
+  noneBtn.onclick = ()=>{ node.color=''; pushHistory(); scheduleAutosave(); renderAll(); };
+  sw.appendChild(noneBtn);
+  Object.keys(COLOR_MAP).forEach(key=>{
+    const info = COLOR_MAP[key];
+    const b = document.createElement('div'); b.className='cswatch'+(node.color===key?' active':''); b.style.background=info.hex; b.title=info.label;
+    b.textContent = info.label[0];
+    b.onclick = ()=>{ node.color=key; pushHistory(); scheduleAutosave(); renderAll(); };
+    sw.appendChild(b);
+  });
+  catField.appendChild(catLbl); catField.appendChild(sw);
+  body.appendChild(catField);
+
+  const descInput = document.createElement('textarea'); descInput.value = node.desc;
+  descInput.oninput = ()=>{ node.desc = descInput.value; scheduleAutosave(); };
+  descInput.onchange = ()=>{ pushHistory(); scheduleAutosave(); };
+  body.appendChild(field('Descrição / Observações', descInput));
+
+  const meta = document.createElement('div');
+  const descendCount = (function count(nid){ const n=state.project.nodes[nid]; return n.children.reduce((s,c)=>s+1+count(c),0); })(node.id);
+  [['Nível', String(path.length-1)], ['Filhos diretos', String(node.children.length)], ['Itens descendentes', String(descendCount)]].forEach(([k,v])=>{
+    const row = document.createElement('div'); row.className='metaRow';
+    const kk=document.createElement('span'); kk.textContent=k; const vv=document.createElement('span'); vv.textContent=v;
+    row.appendChild(kk); row.appendChild(vv); meta.appendChild(row);
+  });
+  body.appendChild(meta);
+}
+
+/* ============================= STATUS BAR ============================= */
+function renderStatus(){
+  $('#statNodes').textContent = countNodes(state.project) + ' itens';
+  const node = state.selectedId ? state.project.nodes[state.selectedId] : null;
+  $('#statSelected').textContent = node ? ('Selecionado: ' + (node.code? node.code+' — ':'') + node.name) : '';
+}
+
+function renderAll(){
+  renderOutline();
+  renderDiagram();
+  renderProps();
+  renderStatus();
+  updateActionAvailability();
+}
+
+/* ============================= AÇÕES DA BARRA ============================= */
+function requireSelection(){
+  if(!state.selectedId){ toast('Selecione um item primeiro.'); return null; }
+  return state.project.nodes[state.selectedId];
+}
+function requestDelete(id){
+  const node = state.project.nodes[id];
+  if(!node || !node.parentId){ toast('Não é possível excluir o item raiz.'); return; }
+  const descCount = (function count(nid){ const n=state.project.nodes[nid]; return n.children.reduce((s,c)=>s+1+count(c),0); })(id);
+  if(descCount>0){
+    const div = document.createElement('div');
+    div.innerHTML = `<p>O item <b>${escHtml(node.name)}</b> possui <b>${descCount}</b> item(ns) filho(s). Excluí-lo também removerá todos os itens abaixo dele na cascata.</p>`;
+    openModal('Excluir item com filhos', div, [
+      {label:'Cancelar', onClick: closeModal},
+      {label:'Excluir tudo', danger:true, onClick: ()=>{ closeModal(); doDelete(id); }}
+    ]);
+  } else {
+    doDelete(id);
+  }
+}
+function doDelete(id){
+  pushHistory();
+  const node = state.project.nodes[id];
+  const parentId = node.parentId;
+  deleteNode(state.project, id);
+  if(state.selectedId===id) selectNode(parentId);
+  scheduleAutosave(); renderAll();
+  toast('Item excluído.');
+}
+function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+$('#rNewChild').onclick = ()=>{
+  const base = state.selectedId ? state.project.nodes[state.selectedId] : getRoot(state.project);
+  pushHistory(); const created = addChild(state.project, base.id, {});
+  scheduleAutosave(); selectNode(created.id); renderAll(); focusOutlineRow(created.id,'name');
+};
+$('#rNewSibling').onclick = ()=>{
+  const node = requireSelection(); if(!node) return;
+  pushHistory(); const created = addSiblingAfter(state.project, node.id, {});
+  scheduleAutosave(); selectNode(created.id); renderAll(); focusOutlineRow(created.id,'name');
+};
+$('#rPromote').onclick = ()=>{
+  const node = requireSelection(); if(!node) return;
+  pushHistory();
+  if(!promote(state.project, node.id)) toast('Este item já está no nível mais alto possível.');
+  else { scheduleAutosave(); renderAll(); }
+};
+$('#rDemote').onclick = ()=>{
+  const node = requireSelection(); if(!node) return;
+  pushHistory();
+  if(!demote(state.project, node.id)) toast('É preciso haver um item irmão anterior para rebaixar.');
+  else { scheduleAutosave(); renderAll(); }
+};
+$('#rMoveUp').onclick = ()=>{ const n=requireSelection(); if(!n) return; pushHistory(); if(moveUp(state.project,n.id)){ scheduleAutosave(); renderAll(); } };
+$('#rMoveDown').onclick = ()=>{ const n=requireSelection(); if(!n) return; pushHistory(); if(moveDown(state.project,n.id)){ scheduleAutosave(); renderAll(); } };
+$('#rDuplicate').onclick = ()=>{
+  const n=requireSelection(); if(!n) return;
+  if(!n.parentId){ toast('Não é possível duplicar o item raiz.'); return; }
+  pushHistory(); const copy = duplicateNode(state.project, n.id);
+  scheduleAutosave(); selectNode(copy.id); renderAll();
+};
+$('#rDelete').onclick = ()=>{ const n=requireSelection(); if(!n) return; requestDelete(n.id); };
+$('#rExpandAll').onclick = ()=>{ Object.values(state.project.nodes).forEach(n=>n.collapsed=false); pushHistory(); scheduleAutosave(); renderAll(); };
+$('#rCollapseAll').onclick = ()=>{ Object.values(state.project.nodes).forEach(n=>{ if(n.parentId) n.collapsed=true; }); pushHistory(); scheduleAutosave(); renderAll(); };
+$('#rAutoLayout').onclick = ()=>{
+  Object.values(state.project.nodes).forEach(n=>{ n.manualX=null; n.manualY=null; });
+  pushHistory(); scheduleAutosave(); renderAll(); zoomFit();
+  toast('Diagrama reorganizado automaticamente.');
+};
+$('#rUndo').onclick = undo;
+$('#rRedo').onclick = redo;
+
+function updateActionAvailability(){
+  $('#rUndo').disabled = state.history.length===0;
+  $('#rRedo').disabled = state.future.length===0;
+}
+
+/* --------------------------- Busca --------------------------- */
+function updateSearchUI(){
+  const total = state.searchResults.length;
+  $('#searchCount').textContent = total ? ((state.searchIndex>=0?state.searchIndex+1:0)+'/'+total) : (state.searchQuery?'0/0':'');
+  $('#searchPrev').disabled = total===0;
+  $('#searchNext').disabled = total===0;
+}
+function gotoSearchMatch(delta){
+  const total = state.searchResults.length;
+  if(!total) return;
+  state.searchIndex = state.searchIndex<0 ? 0 : ((state.searchIndex + delta + total) % total);
+  const id = state.searchResults[state.searchIndex];
+  selectNode(id);
+  const row = $(`.orow[data-id="${id}"]`);
+  if(row) row.scrollIntoView({block:'center'});
+  panToNode(id);
+  updateSearchUI();
+}
+$('#searchBox').addEventListener('input', e=>{
+  state.searchQuery = e.target.value;
+  state.searchResults = searchNodes(state.project, state.searchQuery);
+  state.searchIndex = -1;
+  if(state.searchQuery && state.searchResults.length){
+    // expand ancestors of all matches so they're visible
+    state.searchResults.forEach(id=>{
+      let cur = state.project.nodes[id];
+      cur = cur.parentId ? state.project.nodes[cur.parentId] : null;
+      while(cur){ cur.collapsed=false; cur = cur.parentId ? state.project.nodes[cur.parentId] : null; }
+    });
+  }
+  renderAll();
+  updateSearchUI();
+});
+$('#searchBox').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); gotoSearchMatch(e.shiftKey ? -1 : 1); }
+  else if(e.key==='Escape'){
+    e.preventDefault();
+    e.target.value=''; state.searchQuery=''; state.searchResults=[]; state.searchIndex=-1;
+    renderAll(); updateSearchUI(); e.target.blur();
+  }
+});
+$('#searchPrev').onclick = ()=>gotoSearchMatch(-1);
+$('#searchNext').onclick = ()=>gotoSearchMatch(1);
+
+/* --------------------------- Teclado global --------------------------- */
+window.addEventListener('keydown', e=>{
+  if($('#modalOverlay').classList.contains('open')){
+    if(e.key==='Escape'){ e.preventDefault(); closeModal(); }
+    return;
+  }
+  const tag = (document.activeElement && document.activeElement.tagName || '').toLowerCase();
+  const inField = tag==='input' || tag==='textarea' || tag==='select';
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z' && !e.shiftKey){ e.preventDefault(); undo(); return; }
+  if((e.ctrlKey||e.metaKey) && (e.key.toLowerCase()==='y' || (e.key.toLowerCase()==='z' && e.shiftKey))){ e.preventDefault(); redo(); return; }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){ e.preventDefault(); persistCurrentProject(); toast('Projeto salvo.'); return; }
+  if(inField) return;
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='d'){ e.preventDefault(); $('#rDuplicate').click(); return; }
+  if(e.key==='Delete' || e.key==='Backspace'){
+    if(state.selectedId){ e.preventDefault(); requestDelete(state.selectedId); }
+    return;
+  }
+  if(e.key==='Insert'){ e.preventDefault(); $('#rNewChild').click(); return; }
+  if(e.key==='Tab' && state.selectedId){
+    e.preventDefault();
+    if(e.shiftKey) $('#rPromote').click(); else $('#rDemote').click();
+    return;
+  }
+  if(e.key==='Enter' && state.selectedId){ e.preventDefault(); $('#rNewSibling').click(); return; }
+});
+window.addEventListener('beforeunload', e=>{
+  if(state.dirty){ e.preventDefault(); e.returnValue=''; }
+});
+
+/* ============================= EXPORTAÇÃO ============================= */
+function downloadBlob(bytesOrString, filename, mime){
+  const blob = new Blob([bytesOrString], {type:mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+function sanitizeFilename(name){
+  return (name||'estrutura').trim().replace(/[\\/:*?"<>|]+/g,'-').slice(0,80) || 'estrutura';
+}
+
+$('#rExportJson').onclick = ()=>{
+  const data = JSON.stringify(state.project, null, 2);
+  downloadBlob(data, sanitizeFilename(state.project.name)+'.json', 'application/json');
+  toast('JSON exportado.');
+};
+$('#rImportJson').onclick = ()=> $('#fileImport').click();
+$('#fileImport').addEventListener('change', e=>{
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const data = JSON.parse(reader.result);
+      if(!data || !data.nodes || !data.rootId) throw new Error('formato inválido');
+      flushAutosave();
+      state.project = data;
+      state.project.id = state.project.id || newProject().id;
+      state.selectedId = null;
+      state.history = []; state.future = [];
+      persistCurrentProject();
+      $('#projectName').value = state.project.name || 'Projeto importado';
+      renderAll(); zoomFit();
+      toast('Projeto importado com sucesso.');
+    }catch(err){
+      toast('Não foi possível ler este arquivo JSON.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+$('#rExportDocx').onclick = ()=>{
+  const flat = flatten(state.project, {respectCollapsed:false});
+  const bytes = buildDocxBytes(state.project.name || 'Estrutura de Produto', flat);
+  downloadBlob(bytes, sanitizeFilename(state.project.name)+'.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  toast('Documento Word gerado.');
+};
+
+function buildPrintTable(){
+  const flat = flatten(state.project, {respectCollapsed:false});
+  let rows = flat.map(({node,level})=>{
+    return `<tr><td>${'&nbsp;&nbsp;&nbsp;'.repeat(level)}${level>0?'└ ':''}${escHtml(node.code||'')}</td><td>${'&nbsp;&nbsp;&nbsp;'.repeat(level)}${escHtml(node.name||'')}</td><td>${node.qty!=null&&node.qty!==''?escHtml(String(node.qty)):''}</td><td>${escHtml(node.unit||'')}</td><td>${escHtml(node.desc||'')}</td></tr>`;
+  }).join('');
+  return `<div class="printHeader"><h1>${escHtml(state.project.name)}</h1><span>Estrutura de Produto · ${countNodes(state.project)} itens · ${new Date().toLocaleDateString('pt-BR')}</span></div>
+  <table class="printTable"><thead><tr><th style="width:16%">Código</th><th style="width:28%">Nome</th><th style="width:8%">Qtd</th><th style="width:10%">Un.</th><th>Descrição</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function buildPrintDiagram(){
+  const b = computeLayout(state.project);
+  const pad = 40;
+  const vb = `${b.minX-NODE_W/2-pad} ${b.minY-pad} ${(b.maxX-b.minX)+NODE_W+pad*2} ${(b.maxY-b.minY)+NODE_H+pad*2}`;
+  const clone = document.getElementById('canvas').cloneNode(true);
+  clone.removeAttribute('style');
+  clone.setAttribute('viewBox', vb);
+  clone.setAttribute('width', '100%');
+  clone.querySelector('#viewport').removeAttribute('transform');
+  clone.style.height = 'auto';
+  clone.style.maxWidth = '100%';
+  return `<div class="printHeader"><h1>${escHtml(state.project.name)}</h1><span>Estrutura de Produto · ${countNodes(state.project)} itens · ${new Date().toLocaleDateString('pt-BR')}</span></div>${clone.outerHTML}`;
+}
+
+let _printStyleTag = null;
+function doPrint(mode){
+  const printArea = $('#printArea');
+  printArea.innerHTML = mode==='diagram' ? buildPrintDiagram() : buildPrintTable();
+  if(!_printStyleTag){ _printStyleTag = document.createElement('style'); document.head.appendChild(_printStyleTag); }
+  _printStyleTag.textContent = mode==='diagram' ? '@page{size:A4 landscape; margin:10mm;}' : '@page{size:A4 portrait; margin:14mm;}';
+  closeModal();
+  setTimeout(()=>{ window.print(); }, 60);
+}
+$('#rExportPdf').onclick = ()=>{
+  const wrap = document.createElement('div');
+  const optDiagram = document.createElement('div'); optDiagram.className='optCard selected';
+  optDiagram.innerHTML = '<h3>Diagrama visual</h3><p>Imprime a árvore de estrutura como o diagrama exibido em tela, orientação paisagem.</p>';
+  const optList = document.createElement('div'); optList.className='optCard';
+  optList.innerHTML = '<h3>Lista hierárquica (tabela)</h3><p>Imprime uma tabela com código, nome, quantidade e descrição de cada item, orientação retrato.</p>';
+  let chosen = 'diagram';
+  optDiagram.onclick = ()=>{ chosen='diagram'; optDiagram.classList.add('selected'); optList.classList.remove('selected'); };
+  optList.onclick = ()=>{ chosen='list'; optList.classList.add('selected'); optDiagram.classList.remove('selected'); };
+  wrap.appendChild(optDiagram); wrap.appendChild(optList);
+  const note = document.createElement('p'); note.style.cssText='font-size:11.5px;color:var(--ink-dim);margin-top:6px;';
+  note.textContent = 'Na janela de impressão do navegador, escolha "Salvar como PDF" para gerar um arquivo PDF, ou selecione uma impressora.';
+  wrap.appendChild(note);
+  openModal('Exportar / Imprimir', wrap, [
+    {label:'Cancelar', onClick: closeModal},
+    {label:'Continuar', primary:true, onClick: ()=>doPrint(chosen)}
+  ]);
+};
+$('#btnExportMenu').onclick = ()=>{
+  const wrap = document.createElement('div');
+  const items = [
+    {title:'Imprimir / PDF', desc:'Gera um PDF pela impressão do navegador (diagrama visual ou lista hierárquica).', action:()=>{ closeModal(); $('#rExportPdf').click(); }},
+    {title:'Documento Word (.docx)', desc:'Exporta a estrutura completa, com todos os níveis, como um documento .docx.', action:()=>{ closeModal(); $('#rExportDocx').click(); }},
+    {title:'JSON (backup do projeto)', desc:'Exporta todos os dados do projeto em .json — use para backup ou para importar depois.', action:()=>{ closeModal(); $('#rExportJson').click(); }}
+  ];
+  items.forEach(it=>{
+    const card = document.createElement('div'); card.className='optCard';
+    card.innerHTML = `<h3>${it.title}</h3><p>${it.desc}</p>`;
+    card.onclick = it.action;
+    wrap.appendChild(card);
+  });
+  openModal('Exportar projeto', wrap, [{label:'Cancelar', onClick: closeModal}]);
+};
+
+/* ============================= PROJETOS / PROJECT MANAGEMENT ============================= */
+function startNewProject(name){
+  flushAutosave();
+  state.project = newProject(name);
+  state.selectedId = null;
+  state.history = []; state.future = [];
+  state.zoom=1; state.panX=60; state.panY=40;
+  $('#projectName').value = state.project.name;
+  persistCurrentProject();
+  renderAll();
+  toast('Novo projeto criado.');
+}
+$('#btnNewProject').onclick = ()=>{
+  const wrap = document.createElement('div');
+  const f = document.createElement('div'); f.className='field';
+  const l = document.createElement('label'); l.textContent='Nome do novo projeto';
+  const inp = document.createElement('input'); inp.type='text'; inp.value='Novo Produto';
+  f.appendChild(l); f.appendChild(inp); wrap.appendChild(f);
+  const warn = document.createElement('p'); warn.style.cssText='font-size:11.5px;color:var(--ink-dim);';
+  warn.textContent = 'O projeto atual já está salvo automaticamente e continuará disponível em "Meus Projetos".';
+  wrap.appendChild(warn);
+  openModal('Novo projeto', wrap, [
+    {label:'Cancelar', onClick: closeModal},
+    {label:'Criar', primary:true, onClick: ()=>{ const nm=inp.value.trim()||'Novo Produto'; closeModal(); startNewProject(nm); }}
+  ]);
+  setTimeout(()=>{ inp.focus(); inp.select(); }, 30);
+};
+
+function openProjectsModal(){
+  const wrap = document.createElement('div');
+  const idx = loadIndex().slice().sort((a,b)=>b.updatedAt-a.updatedAt);
+  if(!idx.length){
+    wrap.innerHTML = '<p style="color:var(--ink-dim);font-size:13px;">Nenhum projeto salvo ainda neste navegador.</p>';
+  }
+  idx.forEach(entry=>{
+    const row = document.createElement('div'); row.className='projRow';
+    const name = document.createElement('div'); name.className='pname'; name.textContent = entry.name || '(sem nome)';
+    const meta = document.createElement('div'); meta.className='pmeta'; meta.textContent = new Date(entry.updatedAt).toLocaleString('pt-BR');
+    const openBtn = document.createElement('button'); openBtn.textContent='Abrir';
+    openBtn.onclick = ()=>{
+      const proj = loadProject(entry.id);
+      if(!proj){ toast('Não foi possível carregar este projeto.'); return; }
+      flushAutosave();
+      state.project = proj; state.selectedId=null; state.history=[]; state.future=[];
+      $('#projectName').value = proj.name;
+      closeModal(); renderAll(); zoomFit();
+      toast('Projeto carregado.');
+    };
+    const delBtn = document.createElement('button'); delBtn.textContent='🗑';
+    delBtn.title='Excluir projeto salvo';
+    delBtn.onclick = ()=>{
+      if(entry.id === state.project.id){ toast('Este é o projeto atualmente aberto; troque de projeto antes de excluí-lo.'); return; }
+      const div = document.createElement('div');
+      div.innerHTML = `<p>Excluir permanentemente o projeto <b>${escHtml(entry.name||'(sem nome)')}</b>? Esta ação não pode ser desfeita.</p>`;
+      openModal('Excluir projeto', div, [
+        {label:'Cancelar', onClick: closeModal},
+        {label:'Excluir', danger:true, onClick: ()=>{ deleteStoredProject(entry.id); closeModal(); openProjectsModal(); }}
+      ]);
+    };
+    row.appendChild(name); row.appendChild(meta); row.appendChild(openBtn); row.appendChild(delBtn);
+    wrap.appendChild(row);
+  });
+  openModal('Meus Projetos', wrap, [{label:'Fechar', onClick: closeModal}]);
+}
+$('#btnProjects').onclick = openProjectsModal;
+
+$('#projectName').addEventListener('input', e=>{ state.project.name = e.target.value || 'Projeto sem nome'; scheduleAutosave(); });
+$('#projectName').addEventListener('change', ()=>{ persistCurrentProject(); });
+
+/* ============================= INICIALIZAÇÃO ============================= */
+function boot(){
+  const idx = loadIndex();
+  let proj = null;
+  if(idx.length){
+    const latest = idx.slice().sort((a,b)=>b.updatedAt-a.updatedAt)[0];
+    proj = loadProject(latest.id);
+  }
+  state.project = proj || newProject('Novo Projeto');
+  _idCounter = 1000; // avoid id collisions with any loaded project ids on further creation
+  $('#projectName').value = state.project.name;
+  if(isMobileLayout()){
+    $('#outlinePanel').classList.add('collapsed');
+    $('#propsPanel').classList.add('collapsed');
+  }
+  updatePaneToggles();
+  renderAll();
+  requestAnimationFrame(zoomFit);
+  if(!proj) persistCurrentProject();
+  setDirty(false);
+}
+window.addEventListener('resize', ()=>{ /* keep current pan/zoom; user can click "Ajustar" */ });
+boot();
+</script>
+</body>
+</html>
