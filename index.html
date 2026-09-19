@@ -842,7 +842,10 @@ function svgEl(tag, attrs){
 function isMobileLayout(){ return window.matchMedia('(max-width:880px)').matches; }
 function labeledText(x, y, label, value, opts){
   opts = opts || {};
-  const t = svgEl('text', {class:'infoLine' + (opts.cls?(' '+opts.cls):''), x, y});
+  const scale = opts.scale || 1;
+  const attrs = {class:'infoLine' + (opts.cls?(' '+opts.cls):''), x, y};
+  if(scale!==1) attrs.style = `font-size:${(12.5*scale).toFixed(2)}px`;
+  const t = svgEl('text', attrs);
   const l = svgEl('tspan', {class:'infoLabel'});
   l.textContent = label + ' ';
   const v = svgEl('tspan', {class:'infoValue'});
@@ -1274,9 +1277,11 @@ function applyViewportTransform(){
   $('#zoomLabel').textContent = Math.round(state.zoom*100) + '%';
 }
 function nodeBoxWidth(node){ return Math.max(MIN_BOX_W, node.boxW || NODE_W); }
+function nodeScale(node){ return Math.min(2.4, Math.max(1, nodeBoxWidth(node) / NODE_W)); }
 function nodeBoxHeight(node){
-  const base = NODE_H + Math.max(0, node.boxHExtra||0);
-  return base + (node.detailsExpanded ? DETAIL_H : 0);
+  const s = nodeScale(node);
+  const base = NODE_H*s + Math.max(0, node.boxHExtra||0);
+  return base + (node.detailsExpanded ? DETAIL_H*s : 0);
 }
 function renderDiagram(){
   computeLayout(state.project);
@@ -1300,6 +1305,8 @@ function renderDiagram(){
   flat.forEach(({node})=>{
     const boxW = nodeBoxWidth(node);
     const boxH = nodeBoxHeight(node);
+    const s = nodeScale(node);
+    const bandH = BAND_H*s;
     const x = node._layoutX - boxW/2, y = node._layoutY;
     const g = svgEl('g', {class:'nbox' + (!node.parentId?' root':'') + (node.id===state.selectedId?' selected':''), 'data-id':node.id, transform:`translate(${x},${y})`});
 
@@ -1308,14 +1315,14 @@ function renderDiagram(){
 
     // Faixa de status: fundo tingido na cor do status, no topo do card — só o status.
     const st = STATUS_INFO[nodeStatus(node)];
-    g.appendChild(svgEl('rect', {class:'statusBand', x:0, y:0, width:boxW, height:BAND_H, rx:8, fill:st.hex}));
-    g.appendChild(svgEl('rect', {x:0, y:Math.max(0,BAND_H-8), width:boxW, height:8, fill:st.hex}));
+    g.appendChild(svgEl('rect', {class:'statusBand', x:0, y:0, width:boxW, height:bandH, rx:8, fill:st.hex}));
+    g.appendChild(svgEl('rect', {x:0, y:Math.max(0,bandH-8), width:boxW, height:8, fill:st.hex}));
 
     if(node.color && cats()[node.color]){
       g.appendChild(svgEl('rect', {x:0,y:0,width:5,height:boxH,fill:cats()[node.color].hex}));
     }
 
-    const stT = svgEl('text', {class:'statusLabel', x:boxW/2, y:16.5, 'text-anchor':'middle', fill:st.hex});
+    const stT = svgEl('text', {class:'statusLabel', x:boxW/2, y:bandH/2+4.5*s, 'text-anchor':'middle', fill:st.hex, style:`font-size:${(12.5*s).toFixed(2)}px`});
     stT.textContent = st.label.toUpperCase();
     g.appendChild(stT);
 
@@ -1331,43 +1338,45 @@ function renderDiagram(){
     });
     g.appendChild(dtg);
 
-    // Título: centralizado e em destaque, logo abaixo da faixa de status.
-    const nameLines = wrapText(node.name || '(sem nome)', '700 16.5px ' + FONT_UI, boxW-24, 2);
-    const nameStartY = BAND_H + 24;
-    const nameLineH = 20;
+    // Título: centralizado e em destaque, logo abaixo da faixa de status. Escala com o bloco.
+    const nameLines = wrapText(node.name || '(sem nome)', `700 ${(16.5*s).toFixed(2)}px ` + FONT_UI, boxW-24*s, 2);
+    const nameStartY = bandH + 24*s;
+    const nameLineH = 20*s;
     nameLines.forEach((line,i)=>{
-      const t = svgEl('text', {class:'nameText', x:boxW/2, y: nameStartY + i*nameLineH, 'text-anchor':'middle'});
+      const t = svgEl('text', {class:'nameText', x:boxW/2, y: nameStartY + i*nameLineH, 'text-anchor':'middle', style:`font-size:${(16.5*s).toFixed(2)}px`});
       t.textContent = line;
       g.appendChild(t);
     });
 
-    // Informações abaixo do título: Código e P/N, com rótulos em negrito.
-    const infoY = nameStartY + 2*nameLineH + 10;
-    g.appendChild(labeledText(14, infoY, 'Código:', node.code || '—', {cls:'infoMono'}));
-    g.appendChild(labeledText(14, infoY+19, 'P/N:', node.pn || '—', {cls:'infoMono'}));
+    // Informações abaixo do título: Código e P/N, com rótulos em negrito — também escaladas.
+    const padX = 14*s;
+    const infoY = nameStartY + 2*nameLineH + 10*s;
+    g.appendChild(labeledText(padX, infoY, 'Código:', node.code || '—', {cls:'infoMono', scale:s}));
+    g.appendChild(labeledText(padX, infoY+19*s, 'P/N:', node.pn || '—', {cls:'infoMono', scale:s}));
 
     // Quantidade, no rodapé do card.
     const qtyLabel = (node.qty!=null && node.qty!=='') ? (String(node.qty) + (node.unit?(' '+node.unit):'')) : '';
     if(qtyLabel){
-      const qtyFont = '11px ' + FONT_UI;
-      const qtyW = Math.max(30, measureText(qtyLabel, qtyFont) + 14);
-      const bg = svgEl('g', {class:'qtyBadge', transform:`translate(${boxW-qtyW-6},${NODE_H-26})`});
-      bg.appendChild(svgEl('rect', {width:qtyW, height:18, rx:3}));
-      const bt = svgEl('text', {x:qtyW/2, y:13, 'text-anchor':'middle'});
+      const qtyFontPx = 11*s;
+      const qtyFont = qtyFontPx.toFixed(2)+'px ' + FONT_UI;
+      const qtyW = Math.max(30*s, measureText(qtyLabel, qtyFont) + 14*s);
+      const bg = svgEl('g', {class:'qtyBadge', transform:`translate(${boxW-qtyW-6*s},${NODE_H*s-26*s})`});
+      bg.appendChild(svgEl('rect', {width:qtyW, height:18*s, rx:3}));
+      const bt = svgEl('text', {x:qtyW/2, y:13*s, 'text-anchor':'middle', style:`font-size:${qtyFontPx.toFixed(2)}px`});
       bt.textContent = qtyLabel;
       bg.appendChild(bt);
       g.appendChild(bg);
     }
 
     if(node.detailsExpanded){
-      const detailY0 = NODE_H+(node.boxHExtra||0);
+      const detailY0 = NODE_H*s+(node.boxHExtra||0);
       g.appendChild(svgEl('line', {class:'detailDivider', x1:0, y1:detailY0, x2:boxW, y2:detailY0}));
       const catInfo = node.color && cats()[node.color] ? cats()[node.color].label : 'Sem categoria';
-      const obsFont = '12.5px ' + FONT_UI;
-      const obsLine = wrapText(node.desc || '—', obsFont, boxW-24-62, 1)[0];
-      g.appendChild(labeledText(14, detailY0+22, 'Categoria:', catInfo));
-      g.appendChild(labeledText(14, detailY0+42, 'Fabricante:', node.manufacturer || '—'));
-      g.appendChild(labeledText(14, detailY0+62, 'Obs:', obsLine));
+      const obsFont = (12.5*s).toFixed(2)+'px ' + FONT_UI;
+      const obsLine = wrapText(node.desc || '—', obsFont, boxW-24*s-62*s, 1)[0];
+      g.appendChild(labeledText(padX, detailY0+22*s, 'Categoria:', catInfo, {scale:s}));
+      g.appendChild(labeledText(padX, detailY0+42*s, 'Fabricante:', node.manufacturer || '—', {scale:s}));
+      g.appendChild(labeledText(padX, detailY0+62*s, 'Obs:', obsLine, {scale:s}));
     }
 
     if(node.children.length){
