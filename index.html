@@ -690,17 +690,39 @@ function flatten(p,opts){
 }
 function countNodes(p){ return Object.keys(p.nodes).length; }
 function computeLayout(p,opts){
-  opts=opts||{}; const COL=opts.colWidth||340, ROW=opts.rowHeight||300;
+  opts=opts||{}; const GAP_X=opts.gapX||70, GAP_Y=opts.gapY||70;
+
+  // Passo 1: altura máxima ocupada em cada profundidade (nós visíveis, respeitando recolhidos),
+  // para que cada "linha" da árvore reserve espaço suficiente para o maior bloco daquela linha.
+  const depthMaxH=[];
+  (function scan(id,depth){
+    const node=p.nodes[id];
+    const h=nodeBoxHeight(node);
+    depthMaxH[depth]=Math.max(depthMaxH[depth]||0,h);
+    if(!node.collapsed) node.children.forEach(cid=>scan(cid,depth+1));
+  })(p.rootId,0);
+  const depthY=[0];
+  for(let d=1; d<depthMaxH.length; d++) depthY[d]=depthY[d-1]+depthMaxH[d-1]+GAP_Y;
+
+  // Passo 2: posição X considerando a largura real de cada bloco (evita sobreposição entre irmãos).
   let nextX=0;
   function place(id,depth){
-    const node=p.nodes[id]; const y=depth*ROW;
+    const node=p.nodes[id];
+    const w=nodeBoxWidth(node);
     const vis = node.collapsed ? [] : node.children;
     let x;
-    if(vis.length===0){ x=nextX*COL; nextX+=1; }
-    else { const xs=vis.map(cid=>place(cid,depth+1)); x=(xs[0]+xs[xs.length-1])/2; }
-    node._autoX=x; node._autoY=y;
+    if(vis.length===0){ x=nextX+w/2; nextX+=w+GAP_X; }
+    else {
+      const xs=vis.map(cid=>place(cid,depth+1));
+      x=(xs[0]+xs[xs.length-1])/2;
+      // Se este nó (pai) for mais largo que o vão ocupado pelos filhos, reserva espaço extra
+      // à direita para não sobrepor o próximo ramo da árvore.
+      const neededRight = x + w/2;
+      if(neededRight > nextX) nextX = neededRight + GAP_X;
+    }
+    node._autoX=x; node._autoY=depthY[depth];
     node._layoutX = node.manualX!=null ? node.manualX : x;
-    node._layoutY = node.manualY!=null ? node.manualY : y;
+    node._layoutY = node.manualY!=null ? node.manualY : node._autoY;
     return x;
   }
   place(p.rootId,0);
