@@ -954,7 +954,7 @@ function renderOutline(){
     const toggle = document.createElement('button');
     toggle.className = 'otoggle' + (node.children.length? '' : ' spacer');
     toggle.textContent = node.children.length ? (node.collapsed ? '▸' : '▾') : '';
-    toggle.onclick = (e)=>{ e.stopPropagation(); node.collapsed = !node.collapsed; pushHistory(); scheduleAutosave(); renderOutline(); renderDiagram(); };
+    toggle.onclick = (e)=>{ e.stopPropagation(); pushHistory(); node.collapsed = !node.collapsed; scheduleAutosave(); renderOutline(); renderDiagram(); };
     row.appendChild(toggle);
 
     if(node.color && COLOR_MAP[node.color]){
@@ -966,16 +966,24 @@ function renderOutline(){
     const codeInput = document.createElement('input');
     codeInput.className='ocode'; codeInput.value = node.code; codeInput.placeholder='código';
     codeInput.spellcheck = false;
-    codeInput.addEventListener('input', ()=>{ node.code = codeInput.value; syncNodeLabel(node.id); scheduleAutosave(); });
-    codeInput.addEventListener('change', ()=>{ pushHistory(); scheduleAutosave(); renderProps(); });
+    let codeTouched = false;
+    codeInput.addEventListener('input', ()=>{
+      if(!codeTouched){ pushHistory(); codeTouched = true; }
+      node.code = codeInput.value; syncNodeLabel(node.id); scheduleAutosave();
+    });
+    codeInput.addEventListener('change', ()=>{ codeTouched = false; scheduleAutosave(); renderProps(); });
     codeInput.addEventListener('click', e=>e.stopPropagation());
     row.appendChild(codeInput);
 
     const nameInput = document.createElement('input');
     nameInput.className='oname'; nameInput.value = node.name; nameInput.placeholder='nome do item';
     nameInput.spellcheck = false;
-    nameInput.addEventListener('input', ()=>{ node.name = nameInput.value; syncNodeLabel(node.id); scheduleAutosave(); });
-    nameInput.addEventListener('change', ()=>{ pushHistory(); scheduleAutosave(); renderProps(); });
+    let nameTouched = false;
+    nameInput.addEventListener('input', ()=>{
+      if(!nameTouched){ pushHistory(); nameTouched = true; }
+      node.name = nameInput.value; syncNodeLabel(node.id); scheduleAutosave();
+    });
+    nameInput.addEventListener('change', ()=>{ nameTouched = false; scheduleAutosave(); renderProps(); });
     nameInput.addEventListener('click', e=>e.stopPropagation());
     nameInput.addEventListener('keydown', e=>{
       if(e.key==='Tab'){
@@ -1128,7 +1136,7 @@ function renderDiagram(){
       const tt = svgEl('text', {y:0.5});
       tt.textContent = node.collapsed ? '+' : '–';
       tg.appendChild(tt);
-      tg.addEventListener('click', e=>{ e.stopPropagation(); node.collapsed=!node.collapsed; pushHistory(); scheduleAutosave(); renderAll(); });
+      tg.addEventListener('click', e=>{ e.stopPropagation(); pushHistory(); node.collapsed=!node.collapsed; scheduleAutosave(); renderAll(); });
       g.appendChild(tg);
       if(node.collapsed){
         const total = (function count(nid){ const n=state.project.nodes[nid]; return n.children.reduce((s,c)=>s+1+count(c),0); })(node.id);
@@ -1213,7 +1221,10 @@ function moveNodeDrag(clientX, clientY){
   const dn = state.dragNode; if(!dn) return;
   const dx = (clientX - dn.startClientX)/state.zoom;
   const dy = (clientY - dn.startClientY)/state.zoom;
-  if(Math.abs(dx)>2 || Math.abs(dy)>2) dn.moved = true;
+  if(!dn.moved && (Math.abs(dx)>2 || Math.abs(dy)>2)){
+    pushHistory();
+    dn.moved = true;
+  }
   if(dn.moved){
     const node = state.project.nodes[dn.id];
     node.manualX = dn.startX + dx;
@@ -1227,7 +1238,7 @@ function moveNodeDrag(clientX, clientY){
 }
 function endNodeDrag(){
   if(state.dragNode){
-    if(state.dragNode.moved){ pushHistory(); scheduleAutosave(); updateActionAvailability(); }
+    if(state.dragNode.moved){ scheduleAutosave(); updateActionAvailability(); }
     state.dragNode = null;
     canvasWrap.classList.remove('node-dragging');
   }
@@ -1375,27 +1386,39 @@ function renderProps(){
   }
 
   const codeInput = document.createElement('input'); codeInput.type='text'; codeInput.className='mono'; codeInput.value=node.code;
-  codeInput.oninput = ()=>{ node.code=codeInput.value; codeLine.textContent = node.code || '— sem código —'; scheduleAutosave(); };
-  codeInput.onchange = ()=>{ pushHistory(); scheduleAutosave(); renderOutline(); renderDiagram(); };
+  let codeFieldTouched = false;
+  codeInput.oninput = ()=>{
+    if(!codeFieldTouched){ pushHistory(); codeFieldTouched = true; }
+    node.code=codeInput.value; codeLine.textContent = node.code || '— sem código —'; scheduleAutosave();
+  };
+  codeInput.onchange = ()=>{ codeFieldTouched = false; scheduleAutosave(); renderOutline(); renderDiagram(); };
   body.appendChild(field('Código / PN', codeInput));
 
   const nameInput = document.createElement('input'); nameInput.type='text'; nameInput.value=node.name;
-  nameInput.oninput = ()=>{ node.name=nameInput.value; title.textContent = node.name || '(sem nome)'; scheduleAutosave(); };
-  nameInput.onchange = ()=>{ pushHistory(); scheduleAutosave(); renderOutline(); renderDiagram(); };
+  let nameFieldTouched = false;
+  nameInput.oninput = ()=>{
+    if(!nameFieldTouched){ pushHistory(); nameFieldTouched = true; }
+    node.name=nameInput.value; title.textContent = node.name || '(sem nome)'; scheduleAutosave();
+  };
+  nameInput.onchange = ()=>{ nameFieldTouched = false; scheduleAutosave(); renderOutline(); renderDiagram(); };
   body.appendChild(field('Nome do item', nameInput));
 
   const inlineWrap = document.createElement('div'); inlineWrap.className='field inline';
   const qtyDiv = document.createElement('div');
   const qtyLbl = document.createElement('label'); qtyLbl.textContent='Quantidade';
   const qtyInput = document.createElement('input'); qtyInput.type='number'; qtyInput.step='any'; qtyInput.value=node.qty;
-  qtyInput.oninput = ()=>{ node.qty = qtyInput.value===''? '' : Number(qtyInput.value); scheduleAutosave(); };
-  qtyInput.onchange = ()=>{ pushHistory(); scheduleAutosave(); renderDiagram(); };
+  let qtyFieldTouched = false;
+  qtyInput.oninput = ()=>{
+    if(!qtyFieldTouched){ pushHistory(); qtyFieldTouched = true; }
+    node.qty = qtyInput.value===''? '' : Number(qtyInput.value); scheduleAutosave();
+  };
+  qtyInput.onchange = ()=>{ qtyFieldTouched = false; scheduleAutosave(); renderDiagram(); };
   qtyDiv.appendChild(qtyLbl); qtyDiv.appendChild(qtyInput);
   const unitDiv = document.createElement('div');
   const unitLbl = document.createElement('label'); unitLbl.textContent='Unidade';
   const unitSel = document.createElement('select');
   UNITS.forEach(u=>{ const o=document.createElement('option'); o.value=u; o.textContent=u; if(u===node.unit) o.selected=true; unitSel.appendChild(o); });
-  unitSel.onchange = ()=>{ node.unit=unitSel.value; pushHistory(); scheduleAutosave(); renderDiagram(); };
+  unitSel.onchange = ()=>{ pushHistory(); node.unit=unitSel.value; scheduleAutosave(); renderDiagram(); };
   unitDiv.appendChild(unitLbl); unitDiv.appendChild(unitSel);
   inlineWrap.appendChild(qtyDiv); inlineWrap.appendChild(unitDiv);
   body.appendChild(inlineWrap);
@@ -1404,21 +1427,25 @@ function renderProps(){
   const catLbl = document.createElement('label'); catLbl.textContent='Categoria';
   const sw = document.createElement('div'); sw.className='colorSwatches';
   const noneBtn = document.createElement('div'); noneBtn.className='cswatch'+(!node.color?' active':''); noneBtn.style.background='#DADAD4'; noneBtn.style.color='#5B6472'; noneBtn.textContent='—'; noneBtn.title='Sem categoria';
-  noneBtn.onclick = ()=>{ node.color=''; pushHistory(); scheduleAutosave(); renderAll(); };
+  noneBtn.onclick = ()=>{ pushHistory(); node.color=''; scheduleAutosave(); renderAll(); };
   sw.appendChild(noneBtn);
   Object.keys(COLOR_MAP).forEach(key=>{
     const info = COLOR_MAP[key];
     const b = document.createElement('div'); b.className='cswatch'+(node.color===key?' active':''); b.style.background=info.hex; b.title=info.label;
     b.textContent = info.label[0];
-    b.onclick = ()=>{ node.color=key; pushHistory(); scheduleAutosave(); renderAll(); };
+    b.onclick = ()=>{ pushHistory(); node.color=key; scheduleAutosave(); renderAll(); };
     sw.appendChild(b);
   });
   catField.appendChild(catLbl); catField.appendChild(sw);
   body.appendChild(catField);
 
   const descInput = document.createElement('textarea'); descInput.value = node.desc;
-  descInput.oninput = ()=>{ node.desc = descInput.value; scheduleAutosave(); };
-  descInput.onchange = ()=>{ pushHistory(); scheduleAutosave(); };
+  let descFieldTouched = false;
+  descInput.oninput = ()=>{
+    if(!descFieldTouched){ pushHistory(); descFieldTouched = true; }
+    node.desc = descInput.value; scheduleAutosave();
+  };
+  descInput.onchange = ()=>{ descFieldTouched = false; scheduleAutosave(); };
   body.appendChild(field('Descrição / Observações', descInput));
 
   const meta = document.createElement('div');
