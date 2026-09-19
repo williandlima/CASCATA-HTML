@@ -105,6 +105,7 @@ input,select,textarea{font-family:inherit;}
 }
 .rbtn-sm:hover{background:var(--surface); border-color:var(--line);}
 .rbtn-sm:disabled{opacity:.35;}
+.rbtn-sm.active{background:var(--blueprint); border-color:var(--blueprint); color:#fff;}
 .searchRow{display:flex; align-items:center; gap:4px;}
 #searchBox{
   border:1px solid var(--line); border-radius:var(--radius); padding:6px 9px; font-size:14px;
@@ -204,12 +205,14 @@ input,select,textarea{font-family:inherit;}
 }
 #canvasWrap.panning{cursor:grabbing;}
 #canvasWrap.node-dragging{cursor:default;}
+#canvasWrap.painting, #canvasWrap.painting .nbox{cursor:cell;}
 svg#canvas{width:100%; height:100%; display:block; user-select:none;}
 .nbox{cursor:pointer; filter:var(--card-shadow); transition:filter .12s ease;}
 .nbox:hover{filter:var(--card-shadow-hover);}
 .nbox.selected{filter:var(--card-shadow-hover);}
 .nbox rect.box{fill:var(--surface); stroke:var(--line); stroke-width:1.4;}
-.nbox.root rect.box{fill:var(--paper-dim); stroke:var(--blueprint); stroke-width:1.6;}
+.nbox.hasChildren rect.box{stroke-width:1.8;}
+.nbox.root rect.box{fill:var(--paper-dim); stroke:var(--blueprint); stroke-width:2;}
 .nbox.selected rect.box{stroke:var(--blueprint); stroke-width:2.4;}
 .nbox text{pointer-events:none;}
 .nbox .statusBand{opacity:.16;}
@@ -230,7 +233,11 @@ svg#canvas{width:100%; height:100%; display:block; user-select:none;}
 .nbox .detailToggle rect{fill:var(--surface); stroke:var(--line); stroke-width:1;}
 .nbox .detailToggle text{fill:var(--ink-dim); font-size:10.5px; text-anchor:middle; dominant-baseline:middle; pointer-events:none;}
 .nbox .detailDivider{stroke:var(--paper-edge); stroke-width:1;}
-.nbox .resizeHandle{fill:var(--blueprint); stroke:var(--surface); stroke-width:1.2; cursor:nwse-resize;}
+.nbox .resizeHandle{fill:var(--blueprint); stroke:var(--surface); stroke-width:1.2; opacity:.85;}
+.nbox .resizeHandle:hover{opacity:1;}
+.nbox .resizeHandle.corner{cursor:nwse-resize;}
+.nbox .resizeHandle.edgeH{cursor:ew-resize;}
+.nbox .resizeHandle.edgeV{cursor:ns-resize;}
 .alignGuide{stroke:var(--danger); stroke-width:1; stroke-dasharray:4 3; pointer-events:none;}
 .edge{fill:none; stroke:var(--ink-faint); stroke-width:1.4;}
 .hiddenCount{font-size:10.5px; fill:var(--ink-dim); font-family:var(--font-mono);}
@@ -427,6 +434,16 @@ svg#canvas{width:100%; height:100%; display:block; user-select:none;}
     <div class="rgroup">
       <div class="rgroup-stack">
         <div class="rbtn-row">
+          <button class="rbtn-sm" id="rFormatPainter" title="Pincel de formatação: copia o tamanho e a categoria do item selecionado para aplicar em outros (Esc cancela)">🖌 Pincel</button>
+          <button class="rbtn-sm" id="rTemplates" title="Aplicar um modelo de tamanho/formatação ao item selecionado">📐 Modelos</button>
+        </div>
+      </div>
+      <div class="rgroup-label">Formatação</div>
+    </div>
+
+    <div class="rgroup">
+      <div class="rgroup-stack">
+        <div class="rbtn-row">
           <button class="rbtn-sm" id="rUndo" title="Desfazer (Ctrl+Z)">↺ Desfazer</button>
           <button class="rbtn-sm" id="rRedo" title="Refazer (Ctrl+Shift+Z)">↻ Refazer</button>
         </div>
@@ -555,9 +572,10 @@ function newNode(overrides){
 }
 EPC.newNode = newNode;
 const STATUS_INFO = {
-  liberado: {label:'Liberado total', hex:'#2E7D5B'},
+  cadastrar: {label:'Cadastrar', hex:'#2E7BA6'},
   em_processo: {label:'Em processo', hex:'#C97A2B'},
-  comprar: {label:'Comprar', hex:'#C8262A'}
+  comprar: {label:'Comprar', hex:'#C8262A'},
+  liberado: {label:'Liberado total', hex:'#2E7D5B'}
 };
 function nodeStatus(node){
   if(STATUS_INFO[node.status]) return node.status;
@@ -842,8 +860,9 @@ const state = {
   history: [], future: [],
   dirty: false,
   dragNode: null,     // {id, startClientX, startClientY, startX, startY, moved, rafPending}
-  resizeNode: null,   // {id, startClientX, startClientY, startW, startHExtra, moved, rafPending}
+  resizeNode: null,   // {id, mode, startClientX, startClientY, startW, startHExtra, moved, rafPending}
   alignGuide: null,   // {x, y} snap guide coordinates while dragging a node
+  formatPainter: null, // {boxW, boxHExtra, color} copied format, active while painting
   dragOutline: null,  // id being dragged in outline
   panDrag: null,
   searchQuery: '',
@@ -1127,7 +1146,7 @@ $('#mobileScrim').addEventListener('click', ()=>{
 function selectNode(id){
   state.selectedId = id;
   renderOutlineSelection();
-  renderDiagramSelection();
+  renderDiagram(); // rebuild (not just toggle the class) so the resize handles are (un)mounted correctly
   renderProps();
   renderStatus();
   if(id && isMobileLayout()) openPanel('props');
@@ -1298,7 +1317,21 @@ function applyViewportTransform(){
   $('#viewport').setAttribute('transform', `translate(${state.panX},${state.panY}) scale(${state.zoom})`);
   $('#zoomLabel').textContent = Math.round(state.zoom*100) + '%';
 }
-function nodeBoxWidth(node){ return Math.max(MIN_BOX_W, node.boxW || NODE_W); }
+function nodeDepth(node){
+  let d=0, cur=node;
+  while(cur && cur.parentId){ d++; cur = state.project.nodes[cur.parentId]; }
+  return d;
+}
+function depthEmphasis(depth){
+  if(depth<=0) return 1.18;
+  if(depth===1) return 1.08;
+  if(depth===2) return 1.0;
+  return 0.92;
+}
+function nodeBoxWidth(node){
+  if(node.boxW) return Math.max(MIN_BOX_W, node.boxW);
+  return Math.round(NODE_W * depthEmphasis(nodeDepth(node)));
+}
 function nodeScale(node){ return Math.min(2.4, Math.max(1, nodeBoxWidth(node) / NODE_W)); }
 function nodeBoxHeight(node){
   const s = nodeScale(node);
@@ -1330,7 +1363,7 @@ function renderDiagram(){
     const s = nodeScale(node);
     const bandH = BAND_H*s;
     const x = node._layoutX - boxW/2, y = node._layoutY;
-    const g = svgEl('g', {class:'nbox' + (!node.parentId?' root':'') + (node.id===state.selectedId?' selected':''), 'data-id':node.id, transform:`translate(${x},${y})`});
+    const g = svgEl('g', {class:'nbox' + (!node.parentId?' root':'') + (node.children.length?' hasChildren':'') + (node.id===state.selectedId?' selected':''), 'data-id':node.id, transform:`translate(${x},${y})`});
 
     const rect = svgEl('rect', {class:'box', width:boxW, height:boxH, rx:8, ry:8});
     g.appendChild(rect);
@@ -1426,21 +1459,42 @@ function renderDiagram(){
     g.appendChild(addG);
 
     if(node.id===state.selectedId){
-      const rs = svgEl('rect', {class:'resizeHandle', x:boxW-9, y:boxH-9, width:13, height:13, rx:2});
+      const rs = svgEl('rect', {class:'resizeHandle corner', x:boxW-9, y:boxH-9, width:13, height:13, rx:2});
       rs.addEventListener('mousedown', e=>{
         if(e.button!==0) return;
         e.stopPropagation();
-        startNodeResize(node.id, e.clientX, e.clientY);
+        startNodeResize(node.id, e.clientX, e.clientY, 'both');
       });
       g.appendChild(rs);
+
+      const rsH = svgEl('rect', {class:'resizeHandle edgeH', x:boxW-4, y:boxH/2-11, width:8, height:22, rx:3});
+      rsH.addEventListener('mousedown', e=>{
+        if(e.button!==0) return;
+        e.stopPropagation();
+        startNodeResize(node.id, e.clientX, e.clientY, 'h');
+      });
+      g.appendChild(rsH);
+
+      const rsV = svgEl('rect', {class:'resizeHandle edgeV', x:boxW/2-11, y:boxH-4, width:22, height:8, rx:3});
+      rsV.addEventListener('mousedown', e=>{
+        if(e.button!==0) return;
+        e.stopPropagation();
+        startNodeResize(node.id, e.clientX, e.clientY, 'v');
+      });
+      g.appendChild(rsV);
     }
 
-    g.addEventListener('click', e=>{ if(state.dragNode && state.dragNode.moved) return; selectNode(node.id); });
+    g.addEventListener('click', e=>{
+      if(state.dragNode && state.dragNode.moved) return;
+      if(state.formatPainter) return;
+      selectNode(node.id);
+    });
     g.addEventListener('dblclick', e=>{ e.stopPropagation(); focusOutlineRow(node.id,'name'); });
     g.addEventListener('mousedown', e=>{
       if(e.button!==0) return;
       if(e.target.closest('.addBtn') || e.target.closest('.toggleBtn') || e.target.closest('.detailToggle') || e.target.closest('.resizeHandle')) return;
       e.stopPropagation();
+      if(state.formatPainter){ applyFormatPainter(node.id); return; }
       startNodeDrag(node.id, e.clientX, e.clientY);
     });
 
@@ -1458,10 +1512,6 @@ function renderAlignGuides(){
   if(x!=null) layer.appendChild(svgEl('line', {class:'alignGuide', x1:x, y1:-4000, x2:x, y2:4000}));
   if(y!=null) layer.appendChild(svgEl('line', {class:'alignGuide', x1:-4000, y1:y, x2:4000, y2:y}));
 }
-function renderDiagramSelection(){
-  $all('.nbox').forEach(g=>g.classList.toggle('selected', g.dataset.id===state.selectedId));
-}
-
 /* --------------------------- Pan / Zoom / Drag no canvas (mouse + toque) --------------------------- */
 const canvasWrap = $('#canvasWrap');
 const canvasSvg = $('#canvas');
@@ -1536,10 +1586,10 @@ function endNodeDrag(){
     renderAlignGuides();
   }
 }
-function startNodeResize(id, clientX, clientY){
+function startNodeResize(id, clientX, clientY, mode){
   const node = state.project.nodes[id]; if(!node) return;
   state.resizeNode = {
-    id, moved:false, rafPending:false,
+    id, mode: mode||'both', moved:false, rafPending:false,
     startClientX:clientX, startClientY:clientY,
     startW: nodeBoxWidth(node), startHExtra: node.boxHExtra||0
   };
@@ -1554,8 +1604,12 @@ function moveNodeResize(clientX, clientY){
   }
   if(rn.moved){
     const node = state.project.nodes[rn.id];
-    node.boxW = Math.max(MIN_BOX_W, Math.min(MAX_BOX_W, rn.startW + dx));
-    node.boxHExtra = Math.max(0, Math.min(MAX_BOX_H_EXTRA, rn.startHExtra + dy));
+    if(rn.mode==='both' || rn.mode==='h'){
+      node.boxW = Math.max(MIN_BOX_W, Math.min(MAX_BOX_W, rn.startW + dx));
+    }
+    if(rn.mode==='both' || rn.mode==='v'){
+      node.boxHExtra = Math.max(0, Math.min(MAX_BOX_H_EXTRA, rn.startHExtra + dy));
+    }
     if(!rn.rafPending){
       rn.rafPending = true;
       requestAnimationFrame(()=>{ rn.rafPending=false; if(state.resizeNode===rn) renderDiagram(); });
@@ -1945,6 +1999,50 @@ $('#rUndo').onclick = undo;
 $('#rRedo').onclick = redo;
 $('#rCategories').onclick = openCategoriesModal;
 
+/* --------------------------- Pincel de formatação --------------------------- */
+function setFormatPainter(active){
+  state.formatPainter = active;
+  $('#rFormatPainter').classList.toggle('active', !!active);
+  canvasWrap.classList.toggle('painting', !!active);
+}
+$('#rFormatPainter').onclick = ()=>{
+  if(state.formatPainter){ setFormatPainter(null); return; }
+  const node = requireSelection(); if(!node) return;
+  setFormatPainter({ boxW: node.boxW, boxHExtra: node.boxHExtra||0, color: node.color });
+  toast('Pincel ativo: clique nos itens para aplicar o tamanho e a categoria. Esc para cancelar.');
+};
+function applyFormatPainter(targetId){
+  const fmt = state.formatPainter; if(!fmt) return;
+  const node = state.project.nodes[targetId]; if(!node) return;
+  pushHistory();
+  node.boxW = fmt.boxW; node.boxHExtra = fmt.boxHExtra; node.color = fmt.color;
+  scheduleAutosave(); renderAll();
+}
+
+/* --------------------------- Modelos de tamanho/formatação --------------------------- */
+const SIZE_TEMPLATES = [
+  {key:'compacto', label:'Compacto', desc:'Bloco menor, para itens simples ou muito numerosos.', boxW:170, boxHExtra:0},
+  {key:'padrao', label:'Padrão', desc:'Tamanho padrão do sistema (redefine para o automático).', boxW:null, boxHExtra:0},
+  {key:'grande', label:'Grande', desc:'Bloco maior, com texto mais legível à distância.', boxW:300, boxHExtra:20},
+  {key:'destaque', label:'Destaque', desc:'Bloco bem maior, para itens principais que precisam de imponência.', boxW:400, boxHExtra:60}
+];
+$('#rTemplates').onclick = ()=>{
+  const node = requireSelection(); if(!node) return;
+  const wrap = document.createElement('div');
+  SIZE_TEMPLATES.forEach(t=>{
+    const card = document.createElement('div'); card.className='optCard';
+    card.innerHTML = `<h3>${t.label}</h3><p>${t.desc}</p>`;
+    card.onclick = ()=>{
+      pushHistory();
+      node.boxW = t.boxW; node.boxHExtra = t.boxHExtra;
+      scheduleAutosave(); renderAll(); closeModal();
+      toast('Modelo "'+t.label+'" aplicado.');
+    };
+    wrap.appendChild(card);
+  });
+  openModal('Modelos de bloco', wrap, [{label:'Cancelar', onClick: closeModal}]);
+};
+
 function updateActionAvailability(){
   $('#rUndo').disabled = state.history.length===0;
   $('#rRedo').disabled = state.future.length===0;
@@ -2056,6 +2154,7 @@ window.addEventListener('keydown', e=>{
     if(e.key==='Escape'){ e.preventDefault(); closeModal(); }
     return;
   }
+  if(e.key==='Escape' && state.formatPainter){ e.preventDefault(); setFormatPainter(null); return; }
   const tag = (document.activeElement && document.activeElement.tagName || '').toLowerCase();
   const inField = tag==='input' || tag==='textarea' || tag==='select';
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z' && !e.shiftKey){ e.preventDefault(); undo(); return; }
