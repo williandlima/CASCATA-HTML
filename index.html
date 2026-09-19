@@ -4,18 +4,34 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Estrutura de Produto — Cascata</title>
+<script>
+(function(){
+  try{
+    var t = localStorage.getItem('epc_theme');
+    if(t==='dark' || (!t && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)){
+      document.documentElement.setAttribute('data-theme','dark');
+    }
+  }catch(e){}
+})();
+</script>
 <style>
 :root{
   --graphite-900:#1B2027; --graphite-800:#222932; --graphite-700:#2C333D;
   --graphite-600:#3A424D; --graphite-500:#4A5568; --line-on-dark:#4E5A68;
   --paper:#F5F5F2; --paper-dim:#EAEAE5; --paper-edge:#D9D9D2;
   --ink:#1C2126; --ink-dim:#5B6472; --ink-faint:#8890989c;
-  --line:#C7C7BF;
+  --line:#C7C7BF; --surface:#ffffff; --surface-hover:#ffffff;
   --blueprint:#2D5F8A; --blueprint-dim:#A9C4DA; --blueprint-ink:#1E4463;
   --amber:#B8722A; --danger:#A8422C; --success:#3C7A5C; --purple:#725A93;
   --font-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --font-mono:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",Menlo,monospace;
   --radius:3px;
+}
+:root[data-theme="dark"]{
+  --paper:#1E242C; --paper-dim:#262D36; --paper-edge:#39424D;
+  --ink:#E7E9EC; --ink-dim:#9BA7B4; --ink-faint:#6B7684cc;
+  --line:#3C4552; --surface:#252C35; --surface-hover:#2C343E;
+  --blueprint-dim:#3E5670;
 }
 *{box-sizing:border-box;}
 html,body{height:100%;}
@@ -31,8 +47,9 @@ input,select,textarea{font-family:inherit;}
 
 /* ---------- Title bar ---------- */
 #titlebar{
-  display:flex; align-items:center; gap:10px; padding:0 12px; height:44px; flex:none;
+  display:flex; align-items:center; gap:8px; padding:0 12px; height:44px; flex:none;
   background:var(--graphite-900); color:#E7E9EC; border-bottom:1px solid var(--graphite-700);
+  overflow-x:auto; overflow-y:hidden;
 }
 #titlebar .brand{font-weight:700; font-size:13px; letter-spacing:.02em; color:#C9D3DC; white-space:nowrap;}
 #titlebar .brand small{display:block; font-weight:400; font-size:9.5px; color:#8892A0; letter-spacing:.04em;}
@@ -52,6 +69,7 @@ input,select,textarea{font-family:inherit;}
   display:inline-flex; align-items:center; gap:6px;
 }
 .tb-btn:hover{background:var(--graphite-700); border-color:var(--graphite-500);}
+.tb-btn.icon-only{padding:6px 9px; font-size:14px;}
 .tb-btn.primary{background:var(--blueprint); border-color:var(--blueprint); color:#fff;}
 .tb-btn.primary:hover{background:#3A6E9C;}
 
@@ -70,7 +88,7 @@ input,select,textarea{font-family:inherit;}
   gap:3px; min-width:52px;
 }
 .rbtn .ic{font-size:16px; line-height:1;}
-.rbtn:hover{background:#fff; border-color:var(--line);}
+.rbtn:hover{background:var(--surface); border-color:var(--line);}
 .rbtn:active{background:var(--paper-edge);}
 .rbtn:disabled{opacity:.35; cursor:default;}
 .rbtn:disabled:hover{background:transparent; border-color:transparent;}
@@ -79,12 +97,12 @@ input,select,textarea{font-family:inherit;}
   background:transparent; border:1px solid transparent; border-radius:var(--radius);
   padding:5px 7px; font-size:12.5px; color:var(--ink);
 }
-.rbtn-sm:hover{background:#fff; border-color:var(--line);}
+.rbtn-sm:hover{background:var(--surface); border-color:var(--line);}
 .rbtn-sm:disabled{opacity:.35;}
 .searchRow{display:flex; align-items:center; gap:4px;}
 #searchBox{
   border:1px solid var(--line); border-radius:var(--radius); padding:6px 9px; font-size:12.5px;
-  width:150px; background:#fff;
+  width:150px; background:var(--surface);
 }
 #searchBox:focus{outline:none; border-color:var(--blueprint);}
 #searchCount{font-size:10.5px; color:var(--ink-dim); min-width:34px; text-align:center; font-variant-numeric:tabular-nums;}
@@ -93,7 +111,7 @@ input,select,textarea{font-family:inherit;}
 #workspace{flex:1; display:flex; min-height:0; background:var(--paper); position:relative;}
 
 #outlinePanel{
-  width:300px; flex:none; display:flex; flex-direction:column; background:#fff;
+  width:300px; flex:none; display:flex; flex-direction:column; background:var(--surface);
   border-right:1px solid var(--line); min-width:0; transition:width .18s ease;
 }
 #outlinePanel.collapsed{width:0; border:none; overflow:hidden;}
@@ -103,7 +121,7 @@ input,select,textarea{font-family:inherit;}
 }
 .panelHead .phRight{display:flex; align-items:center; gap:6px;}
 .pcollapse{
-  width:20px; height:20px; flex:none; border:1px solid var(--line); background:#fff; border-radius:2px;
+  width:20px; height:20px; flex:none; border:1px solid var(--line); background:var(--surface); border-radius:2px;
   color:var(--ink-dim); font-size:11px; display:flex; align-items:center; justify-content:center;
 }
 .pcollapse:hover{background:var(--paper-dim); color:var(--ink);}
@@ -130,6 +148,7 @@ input,select,textarea{font-family:inherit;}
 .otoggle:hover{background:var(--paper-edge);}
 .otoggle.spacer{visibility:hidden;}
 .oswatch{width:6px; height:16px; border-radius:1px; flex:none;}
+.oreleased{color:var(--success); font-size:11px; font-weight:700; flex:none; padding:0 1px;}
 .ocode{
   width:64px; flex:none; border:1px solid transparent; background:transparent; font-family:var(--font-mono);
   font-size:10.5px; color:var(--blueprint-ink); padding:3px 4px; border-radius:2px;
@@ -139,7 +158,7 @@ input,select,textarea{font-family:inherit;}
   color:var(--ink); padding:3px 4px; border-radius:2px;
 }
 .ocode:hover,.oname:hover{border-color:var(--line);}
-.ocode:focus,.oname:focus{outline:none; border-color:var(--blueprint); background:#fff;}
+.ocode:focus,.oname:focus{outline:none; border-color:var(--blueprint); background:var(--surface);}
 .orow.root-row .oname{font-weight:700;}
 .orowbtns{display:flex; gap:1px; opacity:0; flex:none;}
 .orow:hover .orowbtns{opacity:1;}
@@ -157,7 +176,7 @@ input,select,textarea{font-family:inherit;}
 #diagramPanel{flex:1; display:flex; flex-direction:column; min-width:0; position:relative;}
 #diagramToolbar{
   display:flex; align-items:center; gap:6px; padding:6px 10px; border-bottom:1px solid var(--paper-edge);
-  background:#fff; font-size:12px; color:var(--ink-dim); flex:none; flex-wrap:wrap;
+  background:var(--surface); font-size:12px; color:var(--ink-dim); flex:none; flex-wrap:wrap;
 }
 #diagramToolbar .zoomLabel{width:42px; text-align:center; font-variant-numeric:tabular-nums;}
 #diagramToolbar .sep{width:1px; height:18px; background:var(--paper-edge); margin:0 4px;}
@@ -173,7 +192,7 @@ input,select,textarea{font-family:inherit;}
 #canvasWrap.node-dragging{cursor:default;}
 svg#canvas{width:100%; height:100%; display:block; user-select:none;}
 .nbox{cursor:pointer;}
-.nbox rect.box{fill:#fff; stroke:var(--line); stroke-width:1.4;}
+.nbox rect.box{fill:var(--surface); stroke:var(--line); stroke-width:1.4;}
 .nbox.root rect.box{fill:var(--paper-dim); stroke:var(--blueprint); stroke-width:1.6;}
 .nbox.selected rect.box{stroke:var(--blueprint); stroke-width:2.4;}
 .nbox text{pointer-events:none;}
@@ -185,8 +204,14 @@ svg#canvas{width:100%; height:100%; display:block; user-select:none;}
 .nbox:hover .addBtn, .nbox.selected .addBtn{opacity:1;}
 .nbox .addBtn circle{fill:var(--blueprint); stroke:#fff; stroke-width:1.5;}
 .nbox .addBtn text{fill:#fff; font-size:12px; font-weight:700; text-anchor:middle; dominant-baseline:middle; pointer-events:none;}
-.nbox .toggleBtn circle{fill:#fff; stroke:var(--line); stroke-width:1.3;}
+.nbox .toggleBtn circle{fill:var(--surface); stroke:var(--line); stroke-width:1.3;}
 .nbox .toggleBtn text{fill:var(--ink-dim); font-size:11px; text-anchor:middle; dominant-baseline:middle; pointer-events:none; font-weight:700;}
+.nbox .detailToggle rect{fill:var(--surface); stroke:var(--line); stroke-width:1;}
+.nbox .detailToggle text{fill:var(--ink-dim); font-size:9px; text-anchor:middle; dominant-baseline:middle; pointer-events:none;}
+.nbox .detailDivider{stroke:var(--paper-edge); stroke-width:1;}
+.nbox .detailText{font-family:var(--font-mono); font-size:9.5px; fill:var(--ink-dim);}
+.nbox .detailText.releasedYes{fill:var(--success); font-family:var(--font-ui); font-weight:700;}
+.nbox .detailText.releasedNo{fill:var(--ink-faint); font-family:var(--font-ui); font-weight:700;}
 .edge{fill:none; stroke:var(--ink-faint); stroke-width:1.4;}
 .hiddenCount{font-size:9px; fill:var(--ink-dim); font-family:var(--font-mono);}
 #legend{
@@ -198,7 +223,7 @@ svg#canvas{width:100%; height:100%; display:block; user-select:none;}
 #legend .lsw{width:9px; height:9px; border-radius:2px;}
 
 /* ---------- Properties panel ---------- */
-#propsPanel{width:300px; flex:none; background:#fff; border-left:1px solid var(--line); display:flex; flex-direction:column; min-width:0; transition:width .18s ease;}
+#propsPanel{width:300px; flex:none; background:var(--surface); border-left:1px solid var(--line); display:flex; flex-direction:column; min-width:0; transition:width .18s ease;}
 #propsPanel.collapsed{width:0; border:none; overflow:hidden;}
 #propsBody{flex:1; overflow-y:auto; padding:12px;}
 #propsEmpty{padding:26px 14px; text-align:center; color:var(--ink-dim); font-size:12.5px; line-height:1.5;}
@@ -206,13 +231,19 @@ svg#canvas{width:100%; height:100%; display:block; user-select:none;}
 .field label{display:block; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-dim); margin-bottom:5px;}
 .field input[type=text],.field input[type=number],.field select,.field textarea{
   width:100%; border:1px solid var(--line); border-radius:var(--radius); padding:7px 9px; font-size:13px; color:var(--ink);
-  background:#fff;
+  background:var(--surface);
 }
 .field input:focus,.field select:focus,.field textarea:focus{outline:none; border-color:var(--blueprint); box-shadow:0 0 0 3px rgba(45,95,138,.12);}
 .field textarea{resize:vertical; min-height:56px; line-height:1.4;}
 .field.inline{display:flex; gap:8px;}
 .field.inline > div{flex:1;}
 .field .mono{font-family:var(--font-mono);}
+.checkRow{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--ink); cursor:pointer;}
+.checkRow input{width:auto;}
+.fieldLabelRow{display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;}
+.fieldLabelRow label{margin-bottom:0;}
+.linkBtn{background:none; border:none; color:var(--blueprint); font-size:11px; font-weight:600; padding:0; cursor:pointer;}
+.linkBtn:hover{text-decoration:underline;}
 .colorSwatches{display:flex; gap:6px; flex-wrap:wrap;}
 .cswatch{
   width:30px; height:30px; border-radius:var(--radius); border:2px solid transparent; cursor:pointer;
@@ -235,7 +266,7 @@ svg#canvas{width:100%; height:100%; display:block; user-select:none;}
 
 /* ---------- Panel toggles (collapsed side tabs) ---------- */
 .paneToggle{
-  position:absolute; top:50%; transform:translateY(-50%); width:16px; height:44px; background:#fff;
+  position:absolute; top:50%; transform:translateY(-50%); width:16px; height:44px; background:var(--surface);
   border:1px solid var(--line); border-radius:0 4px 4px 0; align-items:center; justify-content:center;
   font-size:11px; color:var(--ink-dim); z-index:5; display:none;
 }
@@ -251,13 +282,13 @@ svg#canvas{width:100%; height:100%; display:block; user-select:none;}
   position:fixed; inset:0; background:rgba(27,32,39,.55); display:none; align-items:center; justify-content:center; z-index:100;
 }
 #modalOverlay.open{display:flex;}
-.modal{background:#fff; border-radius:6px; width:480px; max-width:92vw; max-height:86vh; display:flex; flex-direction:column; box-shadow:0 12px 40px rgba(0,0,0,.3);}
+.modal{background:var(--surface); border-radius:6px; width:480px; max-width:92vw; max-height:86vh; display:flex; flex-direction:column; box-shadow:0 12px 40px rgba(0,0,0,.3);}
 .modalHead{padding:16px 18px 12px; border-bottom:1px solid var(--paper-edge); display:flex; justify-content:space-between; align-items:center;}
 .modalHead h2{margin:0; font-size:15px;}
 .modalHead button{background:none; border:none; font-size:18px; color:var(--ink-dim); padding:2px 6px;}
 .modalBody{padding:16px 18px; overflow-y:auto;}
 .modalFoot{padding:12px 18px 16px; display:flex; justify-content:flex-end; gap:8px; border-top:1px solid var(--paper-edge);}
-.btn{padding:8px 16px; border-radius:var(--radius); border:1px solid var(--line); background:#fff; font-size:13px; font-weight:600;}
+.btn{padding:8px 16px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); font-size:13px; font-weight:600;}
 .btn:hover{background:var(--paper-dim);}
 .btn.primary{background:var(--blueprint); border-color:var(--blueprint); color:#fff;}
 .btn.primary:hover{background:#3A6E9C;}
@@ -267,6 +298,9 @@ svg#canvas{width:100%; height:100%; display:block; user-select:none;}
 .optCard.selected{border-color:var(--blueprint); background:#EAF2F8;}
 .optCard h3{margin:0 0 3px; font-size:13.5px;}
 .optCard p{margin:0; font-size:11.5px; color:var(--ink-dim);}
+.catRow{display:flex; align-items:center; gap:8px; padding:5px 0;}
+.catRow input[type=color]{width:34px; height:30px; padding:1px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); flex:none;}
+.catRow input[type=text]{flex:1; border:1px solid var(--line); border-radius:var(--radius); padding:6px 8px; font-size:13px; background:var(--surface); color:var(--ink);}
 .projRow{display:flex; align-items:center; gap:10px; padding:10px 8px; border-bottom:1px solid var(--paper-edge);}
 .projRow:hover{background:var(--paper-dim);}
 .projRow .pname{flex:1; font-size:13px; font-weight:600;}
@@ -310,8 +344,12 @@ svg#canvas{width:100%; height:100%; display:block; user-select:none;}
     <input id="projectName" value="Novo Projeto" spellcheck="false">
     <div class="saveStatus" id="saveStatus"><span class="dot"></span><span id="saveStatusText">salvo</span></div>
     <div class="spacer"></div>
+    <button class="tb-btn" id="btnSave" title="Salvar (Ctrl+S)">💾 Salvar</button>
+    <button class="tb-btn" id="btnSaveAs" title="Salvar como… (escolher local do arquivo)">💾⇲ Salvar como…</button>
     <button class="tb-btn" id="btnProjects">📁 Meus Projetos</button>
     <button class="tb-btn" id="btnNewProject">＋ Novo</button>
+    <button class="tb-btn icon-only" id="btnTheme" title="Alternar modo claro/escuro">🌙</button>
+    <button class="tb-btn icon-only" id="btnHelp" title="Ajuda">❓</button>
     <button class="tb-btn primary" id="btnExportMenu">⭳ Exportar</button>
   </header>
 
@@ -355,6 +393,15 @@ svg#canvas{width:100%; height:100%; display:block; user-select:none;}
         </div>
       </div>
       <div class="rgroup-label">Árvore</div>
+    </div>
+
+    <div class="rgroup">
+      <div class="rgroup-stack">
+        <div class="rbtn-row">
+          <button class="rbtn-sm" id="rCategories" title="Gerenciar categorias (cor e tipo)">🎨 Categorias</button>
+        </div>
+      </div>
+      <div class="rgroup-label">Categorias</div>
     </div>
 
     <div class="rgroup">
@@ -477,7 +524,8 @@ EPC.genId = genId;
 function newNode(overrides){
   return Object.assign({
     id: genId(), parentId: null, children: [], code: '', name: 'Novo item',
-    qty: 1, unit: 'un', desc: '', color: '', collapsed: false, manualX: null, manualY: null
+    qty: 1, unit: 'un', desc: '', color: '', collapsed: false, manualX: null, manualY: null,
+    pn: '', manufacturer: '', released: false, detailsExpanded: false
   }, overrides || {});
 }
 EPC.newNode = newNode;
@@ -487,6 +535,7 @@ function newProject(name){
   return {
     id: 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
     name: name || 'Novo Projeto', rootId: root.id, nodes: { [root.id]: root },
+    categories: cloneDefaultCategories(),
     createdAt: Date.now(), updatedAt: Date.now()
   };
 }
@@ -607,7 +656,7 @@ function flatten(p,opts){
 }
 function countNodes(p){ return Object.keys(p.nodes).length; }
 function computeLayout(p,opts){
-  opts=opts||{}; const COL=opts.colWidth||210, ROW=opts.rowHeight||130;
+  opts=opts||{}; const COL=opts.colWidth||210, ROW=opts.rowHeight||152;
   let nextX=0;
   function place(id,depth){
     const node=p.nodes[id]; const y=depth*ROW;
@@ -715,8 +764,16 @@ const COLOR_MAP = {
   firmware: {hex:'#3C7A5C', label:'Firmware'},
   comprado: {hex:'#725A93', label:'Comprado'}
 };
+function cloneDefaultCategories(){ return JSON.parse(JSON.stringify(COLOR_MAP)); }
+function ensureCategories(project){
+  if(!project.categories || typeof project.categories!=='object' || !Object.keys(project.categories).length){
+    project.categories = cloneDefaultCategories();
+  }
+  return project.categories;
+}
+function cats(){ return (state.project && ensureCategories(state.project)) || COLOR_MAP; }
 const UNITS = ['un','pç','conjunto','par','m','mm','m²','m³','kg','g','L','mL'];
-const NODE_W = 176, NODE_H = 64;
+const NODE_W = 176, NODE_H = 64, DETAIL_H = 64;
 const STORAGE_INDEX = 'epc_projects_index';
 const STORAGE_PREFIX = 'epc_project_';
 
@@ -731,7 +788,9 @@ const state = {
   panDrag: null,
   searchQuery: '',
   searchResults: [],
-  searchIndex: -1
+  searchIndex: -1,
+  fileHandle: null,
+  fileHandleName: ''
 };
 
 function $(sel, root){ return (root||document).querySelector(sel); }
@@ -765,6 +824,46 @@ function persistCurrentProject(){
   }catch(e){
     toast('Não foi possível salvar automaticamente (armazenamento local indisponível).');
   }
+  syncLinkedFile();
+}
+async function writeProjectToHandle(handle){
+  const writable = await handle.createWritable();
+  await writable.write(JSON.stringify(state.project, null, 2));
+  await writable.close();
+}
+function syncLinkedFile(){
+  if(!state.fileHandle) return;
+  writeProjectToHandle(state.fileHandle).catch(()=>{
+    state.fileHandle = null; state.fileHandleName = '';
+    toast('Perdi acesso ao arquivo vinculado; salvando apenas localmente.');
+  });
+}
+async function saveProjectAs(){
+  if(!state.project) return;
+  if(window.showSaveFilePicker){
+    try{
+      const handle = await window.showSaveFilePicker({
+        suggestedName: sanitizeFilename(state.project.name)+'.json',
+        types: [{description:'Projeto EPC (JSON)', accept:{'application/json':['.json']}}]
+      });
+      await writeProjectToHandle(handle);
+      state.fileHandle = handle;
+      state.fileHandleName = handle.name;
+      persistCurrentProject();
+      toast('Projeto salvo em ' + handle.name + '.');
+    }catch(err){
+      if(err && err.name!=='AbortError') toast('Não foi possível salvar o arquivo.');
+    }
+  } else {
+    const data = JSON.stringify(state.project, null, 2);
+    downloadBlob(data, sanitizeFilename(state.project.name)+'.json', 'application/json');
+    toast('Este navegador não permite escolher a pasta diretamente; o arquivo foi baixado (verifique as opções de download do navegador para escolher o local).');
+  }
+}
+function saveProjectNow(){
+  if(!state.project) return;
+  persistCurrentProject();
+  toast(state.fileHandle ? ('Salvo em ' + state.fileHandleName + '.') : 'Projeto salvo.');
 }
 function loadProject(id){
   try{
@@ -786,7 +885,11 @@ function setDirty(v){
   const el = $('#saveStatus');
   const txt = $('#saveStatusText');
   if(v){ el.classList.add('dirty'); txt.textContent = 'alterações não salvas…'; }
-  else { el.classList.remove('dirty'); txt.textContent = 'salvo ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
+  else {
+    el.classList.remove('dirty');
+    const where = state.fileHandleName ? (' em ' + state.fileHandleName) : '';
+    txt.textContent = 'salvo' + where + ' ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }
 }
 function scheduleAutosave(){
   setDirty(true);
@@ -957,10 +1060,15 @@ function renderOutline(){
     toggle.onclick = (e)=>{ e.stopPropagation(); pushHistory(); node.collapsed = !node.collapsed; scheduleAutosave(); renderOutline(); renderDiagram(); };
     row.appendChild(toggle);
 
-    if(node.color && COLOR_MAP[node.color]){
+    if(node.color && cats()[node.color]){
       const sw = document.createElement('span');
-      sw.className='oswatch'; sw.style.background = COLOR_MAP[node.color].hex;
+      sw.className='oswatch'; sw.style.background = cats()[node.color].hex;
       row.appendChild(sw);
+    }
+    if(node.released){
+      const rt = document.createElement('span');
+      rt.className='oreleased'; rt.textContent='✓'; rt.title='Liberado';
+      row.appendChild(rt);
     }
 
     const codeInput = document.createElement('input');
@@ -1075,6 +1183,7 @@ function applyViewportTransform(){
   $('#viewport').setAttribute('transform', `translate(${state.panX},${state.panY}) scale(${state.zoom})`);
   $('#zoomLabel').textContent = Math.round(state.zoom*100) + '%';
 }
+function nodeBoxHeight(node){ return NODE_H + (node.detailsExpanded ? DETAIL_H : 0); }
 function renderDiagram(){
   computeLayout(state.project);
   const edges = $('#edgesLayer'); const nodesLayer = $('#nodesLayer');
@@ -1086,7 +1195,7 @@ function renderDiagram(){
   flat.forEach(({node})=>{
     if(!node.parentId || !visibleIds.has(node.parentId)) return;
     const parent = state.project.nodes[node.parentId];
-    const px = parent._layoutX, py = parent._layoutY + NODE_H;
+    const px = parent._layoutX, py = parent._layoutY + nodeBoxHeight(parent);
     const cx = node._layoutX, cy = node._layoutY;
     const midY = py + (cy-py)/2;
     const d = `M ${px} ${py} L ${px} ${midY} L ${cx} ${midY} L ${cx} ${cy}`;
@@ -1095,14 +1204,15 @@ function renderDiagram(){
 
   // nodes
   flat.forEach(({node})=>{
+    const boxH = nodeBoxHeight(node);
     const x = node._layoutX - NODE_W/2, y = node._layoutY;
     const g = svgEl('g', {class:'nbox' + (!node.parentId?' root':'') + (node.id===state.selectedId?' selected':''), 'data-id':node.id, transform:`translate(${x},${y})`});
 
-    const rect = svgEl('rect', {class:'box', width:NODE_W, height:NODE_H, rx:3, ry:3});
+    const rect = svgEl('rect', {class:'box', width:NODE_W, height:boxH, rx:3, ry:3});
     g.appendChild(rect);
 
-    if(node.color && COLOR_MAP[node.color]){
-      g.appendChild(svgEl('rect', {x:0,y:0,width:5,height:NODE_H,fill:COLOR_MAP[node.color].hex}));
+    if(node.color && cats()[node.color]){
+      g.appendChild(svgEl('rect', {x:0,y:0,width:5,height:boxH,fill:cats()[node.color].hex}));
     }
 
     if(node.code){
@@ -1130,8 +1240,30 @@ function renderDiagram(){
       g.appendChild(bg);
     }
 
+    // Alça de detalhes: expande/oculta P/N, Fabricante e status de liberação.
+    const dtg = svgEl('g', {class:'detailToggle', transform:`translate(${NODE_W-13},13)`, style:'cursor:pointer;'});
+    dtg.appendChild(svgEl('rect', {x:-10,y:-10,width:20,height:20,rx:3}));
+    const dtt = svgEl('text', {y:0.5});
+    dtt.textContent = node.detailsExpanded ? '▾' : '▸';
+    dtg.appendChild(dtt);
+    dtg.addEventListener('click', e=>{ e.stopPropagation(); pushHistory(); node.detailsExpanded = !node.detailsExpanded; scheduleAutosave(); renderDiagram(); });
+    g.appendChild(dtg);
+
+    if(node.detailsExpanded){
+      g.appendChild(svgEl('line', {class:'detailDivider', x1:0, y1:NODE_H, x2:NODE_W, y2:NODE_H}));
+      const pnT = svgEl('text', {class:'detailText', x:12, y:NODE_H+16});
+      pnT.textContent = 'P/N: ' + (node.pn || '—');
+      g.appendChild(pnT);
+      const mfT = svgEl('text', {class:'detailText', x:12, y:NODE_H+32});
+      mfT.textContent = 'Fab.: ' + (node.manufacturer || '—');
+      g.appendChild(mfT);
+      const relT = svgEl('text', {class:'detailText ' + (node.released?'releasedYes':'releasedNo'), x:12, y:NODE_H+48});
+      relT.textContent = node.released ? '✓ Liberado' : '✕ Não liberado';
+      g.appendChild(relT);
+    }
+
     if(node.children.length){
-      const tg = svgEl('g', {class:'toggleBtn', transform:`translate(${NODE_W/2},${NODE_H})`, style:'cursor:pointer;'});
+      const tg = svgEl('g', {class:'toggleBtn', transform:`translate(${NODE_W/2},${boxH})`, style:'cursor:pointer;'});
       tg.appendChild(svgEl('circle', {r:8}));
       const tt = svgEl('text', {y:0.5});
       tt.textContent = node.collapsed ? '+' : '–';
@@ -1140,13 +1272,13 @@ function renderDiagram(){
       g.appendChild(tg);
       if(node.collapsed){
         const total = (function count(nid){ const n=state.project.nodes[nid]; return n.children.reduce((s,c)=>s+1+count(c),0); })(node.id);
-        const hc = svgEl('text', {class:'hiddenCount', x:NODE_W/2, y:NODE_H+22, 'text-anchor':'middle'});
+        const hc = svgEl('text', {class:'hiddenCount', x:NODE_W/2, y:boxH+22, 'text-anchor':'middle'});
         hc.textContent = total + (total===1?' item oculto':' itens ocultos');
         g.appendChild(hc);
       }
     }
 
-    const addG = svgEl('g', {class:'addBtn', transform:`translate(${NODE_W+14},${NODE_H/2})`, style:'cursor:pointer;'});
+    const addG = svgEl('g', {class:'addBtn', transform:`translate(${NODE_W+14},${boxH/2})`, style:'cursor:pointer;'});
     addG.appendChild(svgEl('circle', {r:9}));
     const addT = svgEl('text', {y:1});
     addT.textContent = '+';
@@ -1158,7 +1290,7 @@ function renderDiagram(){
     g.addEventListener('dblclick', e=>{ e.stopPropagation(); focusOutlineRow(node.id,'name'); });
     g.addEventListener('mousedown', e=>{
       if(e.button!==0) return;
-      if(e.target.closest('.addBtn') || e.target.closest('.toggleBtn')) return;
+      if(e.target.closest('.addBtn') || e.target.closest('.toggleBtn') || e.target.closest('.detailToggle')) return;
       e.stopPropagation();
       startNodeDrag(node.id, e.clientX, e.clientY);
     });
@@ -1179,7 +1311,7 @@ function renderLegend(){
   if(!used.size){ legend.style.display='none'; legend.innerHTML=''; return; }
   legend.style.display='flex'; legend.innerHTML='';
   used.forEach(key=>{
-    const info = COLOR_MAP[key]; if(!info) return;
+    const info = cats()[key]; if(!info) return;
     const item = document.createElement('div'); item.className='litem';
     const sw = document.createElement('span'); sw.className='lsw'; sw.style.background = info.hex;
     const lb = document.createElement('span'); lb.textContent = info.label;
@@ -1423,20 +1555,61 @@ function renderProps(){
   inlineWrap.appendChild(qtyDiv); inlineWrap.appendChild(unitDiv);
   body.appendChild(inlineWrap);
 
+  const pnInput = document.createElement('input'); pnInput.type='text'; pnInput.className='mono'; pnInput.value=node.pn||'';
+  let pnFieldTouched = false;
+  pnInput.oninput = ()=>{
+    if(!pnFieldTouched){ pushHistory(); pnFieldTouched = true; }
+    node.pn = pnInput.value; scheduleAutosave();
+  };
+  pnInput.onchange = ()=>{ pnFieldTouched = false; scheduleAutosave(); renderDiagram(); };
+  body.appendChild(field('P/N (número da peça)', pnInput));
+
+  const mfInput = document.createElement('input'); mfInput.type='text'; mfInput.value=node.manufacturer||'';
+  let mfFieldTouched = false;
+  mfInput.oninput = ()=>{
+    if(!mfFieldTouched){ pushHistory(); mfFieldTouched = true; }
+    node.manufacturer = mfInput.value; scheduleAutosave();
+  };
+  mfInput.onchange = ()=>{ mfFieldTouched = false; scheduleAutosave(); renderDiagram(); };
+  body.appendChild(field('Fabricante', mfInput));
+
+  const relField = document.createElement('div'); relField.className='field';
+  const relLbl = document.createElement('label'); relLbl.textContent='Liberação';
+  const relRow = document.createElement('label'); relRow.className='checkRow';
+  const relCk = document.createElement('input'); relCk.type='checkbox'; relCk.checked=!!node.released;
+  relCk.onchange = ()=>{ pushHistory(); node.released = relCk.checked; scheduleAutosave(); renderAll(); };
+  const relTxt = document.createElement('span'); relTxt.textContent='Item liberado (release total)';
+  relRow.appendChild(relCk); relRow.appendChild(relTxt);
+  relField.appendChild(relLbl); relField.appendChild(relRow);
+  body.appendChild(relField);
+
+  const dtField = document.createElement('div'); dtField.className='field';
+  const dtRow = document.createElement('label'); dtRow.className='checkRow';
+  const dtCk = document.createElement('input'); dtCk.type='checkbox'; dtCk.checked=!!node.detailsExpanded;
+  dtCk.onchange = ()=>{ pushHistory(); node.detailsExpanded = dtCk.checked; scheduleAutosave(); renderDiagram(); };
+  const dtTxt = document.createElement('span'); dtTxt.textContent='Mostrar P/N, Fabricante e Liberação no diagrama';
+  dtRow.appendChild(dtCk); dtRow.appendChild(dtTxt);
+  dtField.appendChild(dtRow);
+  body.appendChild(dtField);
+
   const catField = document.createElement('div'); catField.className='field';
+  const catLblRow = document.createElement('div'); catLblRow.className='fieldLabelRow';
   const catLbl = document.createElement('label'); catLbl.textContent='Categoria';
+  const catEditBtn = document.createElement('button'); catEditBtn.type='button'; catEditBtn.className='linkBtn'; catEditBtn.textContent='Editar categorias';
+  catEditBtn.onclick = ()=> openCategoriesModal();
+  catLblRow.appendChild(catLbl); catLblRow.appendChild(catEditBtn);
   const sw = document.createElement('div'); sw.className='colorSwatches';
   const noneBtn = document.createElement('div'); noneBtn.className='cswatch'+(!node.color?' active':''); noneBtn.style.background='#DADAD4'; noneBtn.style.color='#5B6472'; noneBtn.textContent='—'; noneBtn.title='Sem categoria';
   noneBtn.onclick = ()=>{ pushHistory(); node.color=''; scheduleAutosave(); renderAll(); };
   sw.appendChild(noneBtn);
-  Object.keys(COLOR_MAP).forEach(key=>{
-    const info = COLOR_MAP[key];
+  Object.keys(cats()).forEach(key=>{
+    const info = cats()[key];
     const b = document.createElement('div'); b.className='cswatch'+(node.color===key?' active':''); b.style.background=info.hex; b.title=info.label;
     b.textContent = info.label[0];
     b.onclick = ()=>{ pushHistory(); node.color=key; scheduleAutosave(); renderAll(); };
     sw.appendChild(b);
   });
-  catField.appendChild(catLbl); catField.appendChild(sw);
+  catField.appendChild(catLblRow); catField.appendChild(sw);
   body.appendChild(catField);
 
   const descInput = document.createElement('textarea'); descInput.value = node.desc;
@@ -1544,10 +1717,67 @@ $('#rAutoLayout').onclick = ()=>{
 };
 $('#rUndo').onclick = undo;
 $('#rRedo').onclick = redo;
+$('#rCategories').onclick = openCategoriesModal;
 
 function updateActionAvailability(){
   $('#rUndo').disabled = state.history.length===0;
   $('#rRedo').disabled = state.future.length===0;
+}
+
+/* --------------------------- Categorias (cor + tipo) editáveis --------------------------- */
+function openCategoriesModal(){
+  const wrap = document.createElement('div');
+  const intro = document.createElement('p'); intro.style.cssText='font-size:11.5px;color:var(--ink-dim);margin:0 0 10px;';
+  intro.textContent = 'Cada categoria define uma cor e um nome de tipo, usados para classificar itens da estrutura.';
+  wrap.appendChild(intro);
+
+  const listWrap = document.createElement('div');
+  let temp = JSON.parse(JSON.stringify(cats()));
+
+  function renderList(){
+    listWrap.innerHTML='';
+    Object.keys(temp).forEach(key=>{
+      const info = temp[key];
+      const row = document.createElement('div'); row.className='catRow';
+      const colorInp = document.createElement('input'); colorInp.type='color'; colorInp.value = info.hex; colorInp.title='Cor';
+      colorInp.oninput = ()=>{ temp[key].hex = colorInp.value; };
+      const labelInp = document.createElement('input'); labelInp.type='text'; labelInp.value = info.label; labelInp.placeholder='Nome do tipo';
+      labelInp.oninput = ()=>{ temp[key].label = labelInp.value; };
+      const delBtn = document.createElement('button'); delBtn.type='button'; delBtn.className='oibtn danger'; delBtn.textContent='✕'; delBtn.title='Remover categoria';
+      delBtn.onclick = ()=>{ delete temp[key]; renderList(); };
+      row.appendChild(colorInp); row.appendChild(labelInp); row.appendChild(delBtn);
+      listWrap.appendChild(row);
+    });
+    if(!Object.keys(temp).length){
+      const empty = document.createElement('p'); empty.style.cssText='font-size:12px;color:var(--ink-dim);';
+      empty.textContent = 'Nenhuma categoria. Adicione uma abaixo.';
+      listWrap.appendChild(empty);
+    }
+  }
+  renderList();
+  wrap.appendChild(listWrap);
+
+  const addBtn = document.createElement('button'); addBtn.className='btn'; addBtn.type='button'; addBtn.textContent='+ Nova categoria';
+  addBtn.style.marginTop='8px';
+  addBtn.onclick = ()=>{
+    let base='categoria', n=1, key=base+n;
+    while(temp[key]){ n++; key = base+n; }
+    temp[key] = {hex:'#4A5568', label:'Nova categoria'};
+    renderList();
+  };
+  wrap.appendChild(addBtn);
+
+  openModal('Categorias (cor e tipo)', wrap, [
+    {label:'Cancelar', onClick: closeModal},
+    {label:'Salvar', primary:true, onClick: ()=>{
+      pushHistory();
+      const validKeys = new Set(Object.keys(temp));
+      Object.values(state.project.nodes).forEach(n=>{ if(n.color && !validKeys.has(n.color)) n.color=''; });
+      state.project.categories = temp;
+      scheduleAutosave(); renderAll(); closeModal();
+      toast('Categorias atualizadas.');
+    }}
+  ]);
 }
 
 /* --------------------------- Busca --------------------------- */
@@ -1604,7 +1834,11 @@ window.addEventListener('keydown', e=>{
   const inField = tag==='input' || tag==='textarea' || tag==='select';
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z' && !e.shiftKey){ e.preventDefault(); undo(); return; }
   if((e.ctrlKey||e.metaKey) && (e.key.toLowerCase()==='y' || (e.key.toLowerCase()==='z' && e.shiftKey))){ e.preventDefault(); redo(); return; }
-  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){ e.preventDefault(); persistCurrentProject(); toast('Projeto salvo.'); return; }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){
+    e.preventDefault();
+    if(e.shiftKey) saveProjectAs(); else saveProjectNow();
+    return;
+  }
   if(inField) return;
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='d'){ e.preventDefault(); $('#rDuplicate').click(); return; }
   if(e.key==='Delete' || e.key==='Backspace'){
@@ -1652,6 +1886,7 @@ $('#fileImport').addEventListener('change', e=>{
       flushAutosave();
       state.project = data;
       state.project.id = state.project.id || newProject().id;
+      ensureCategories(state.project);
       state.selectedId = null;
       state.history = []; state.future = [];
       persistCurrentProject();
@@ -1738,6 +1973,62 @@ $('#btnExportMenu').onclick = ()=>{
   openModal('Exportar projeto', wrap, [{label:'Cancelar', onClick: closeModal}]);
 };
 
+$('#btnSave').onclick = saveProjectNow;
+$('#btnSaveAs').onclick = saveProjectAs;
+
+/* --------------------------- Tema claro / escuro --------------------------- */
+function applyThemeIcon(){
+  const dark = document.documentElement.getAttribute('data-theme')==='dark';
+  $('#btnTheme').textContent = dark ? '☀️' : '🌙';
+  $('#btnTheme').title = dark ? 'Mudar para modo claro' : 'Mudar para modo noturno';
+}
+$('#btnTheme').onclick = ()=>{
+  const dark = document.documentElement.getAttribute('data-theme')==='dark';
+  if(dark) document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme','dark');
+  try{ localStorage.setItem('epc_theme', dark ? 'light' : 'dark'); }catch(e){}
+  applyThemeIcon();
+};
+applyThemeIcon();
+
+/* --------------------------- Ajuda --------------------------- */
+$('#btnHelp').onclick = ()=>{
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <p style="font-size:13px; line-height:1.6; margin-top:0;">
+      <b>Estrutura de Produto — Cascata</b> organiza seu produto em uma árvore de itens (pai e filhos),
+      como uma lista de materiais (BOM).
+    </p>
+    <p style="font-size:12.5px; font-weight:700; margin-bottom:4px;">Estrutura</p>
+    <ul style="font-size:12.5px; line-height:1.7; margin-top:0; padding-left:18px;">
+      <li><b>Enter</b> cria um item irmão · <b>Insert</b> cria um item filho.</li>
+      <li><b>Tab</b> rebaixa o item selecionado · <b>Shift+Tab</b> promove.</li>
+      <li>Arraste pela alcinha (⠿) na lista à esquerda para reorganizar a hierarquia.</li>
+      <li>No diagrama, arraste um item para reposicioná-lo livremente.</li>
+    </ul>
+    <p style="font-size:12.5px; font-weight:700; margin-bottom:4px;">Detalhes do item</p>
+    <ul style="font-size:12.5px; line-height:1.7; margin-top:0; padding-left:18px;">
+      <li>Clique na seta (▸/▾) no canto do card, no diagrama, para expandir P/N, Fabricante e status de liberação.</li>
+      <li>No painel de propriedades você edita código, nome, quantidade, P/N, fabricante, liberação, categoria e descrição.</li>
+    </ul>
+    <p style="font-size:12.5px; font-weight:700; margin-bottom:4px;">Categorias (cor e tipo)</p>
+    <ul style="font-size:12.5px; line-height:1.7; margin-top:0; padding-left:18px;">
+      <li>Use o botão <b>🎨 Categorias</b> na barra de ferramentas, ou "Editar categorias" no painel de propriedades, para criar, renomear ou apagar categorias e suas cores.</li>
+    </ul>
+    <p style="font-size:12.5px; font-weight:700; margin-bottom:4px;">Salvar</p>
+    <ul style="font-size:12.5px; line-height:1.7; margin-top:0; padding-left:18px;">
+      <li>O projeto é salvo automaticamente neste navegador enquanto você edita.</li>
+      <li><b>Salvar como…</b> permite escolher o local do arquivo .json no seu computador; depois disso, <b>Salvar</b> (Ctrl+S) grava direto nesse arquivo, como no Office.</li>
+    </ul>
+    <p style="font-size:12.5px; font-weight:700; margin-bottom:4px;">Outros atalhos</p>
+    <ul style="font-size:12.5px; line-height:1.7; margin-top:0; padding-left:18px;">
+      <li><b>Ctrl+Z</b> desfazer · <b>Ctrl+Shift+Z</b> refazer · <b>Ctrl+D</b> duplicar · <b>Delete</b> excluir.</li>
+      <li>🌙/☀️ alterna entre modo claro e escuro.</li>
+    </ul>
+  `;
+  openModal('Ajuda', wrap, [{label:'Fechar', primary:true, onClick: closeModal}]);
+};
+
 /* ============================= PROJETOS / PROJECT MANAGEMENT ============================= */
 function startNewProject(name){
   flushAutosave();
@@ -1782,6 +2073,7 @@ function openProjectsModal(){
       if(!proj){ toast('Não foi possível carregar este projeto.'); return; }
       flushAutosave();
       state.project = proj; state.selectedId=null; state.history=[]; state.future=[];
+      ensureCategories(state.project);
       $('#projectName').value = proj.name;
       closeModal(); renderAll(); zoomFit();
       toast('Projeto carregado.');
@@ -1816,6 +2108,7 @@ function boot(){
     proj = loadProject(latest.id);
   }
   state.project = proj || newProject('Novo Projeto');
+  ensureCategories(state.project);
   _idCounter = 1000; // avoid id collisions with any loaded project ids on further creation
   $('#projectName').value = state.project.name;
   if(isMobileLayout()){
