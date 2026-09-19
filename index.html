@@ -16,22 +16,28 @@
 </script>
 <style>
 :root{
-  --graphite-900:#1B2027; --graphite-800:#222932; --graphite-700:#2C333D;
-  --graphite-600:#3A424D; --graphite-500:#4A5568; --line-on-dark:#4E5A68;
-  --paper:#F5F5F2; --paper-dim:#EAEAE5; --paper-edge:#D9D9D2;
-  --ink:#1C2126; --ink-dim:#5B6472; --ink-faint:#8890989c;
-  --line:#C7C7BF; --surface:#ffffff; --surface-hover:#ffffff;
-  --blueprint:#2D5F8A; --blueprint-dim:#A9C4DA; --blueprint-ink:#1E4463;
-  --amber:#B8722A; --danger:#A8422C; --success:#3C7A5C; --purple:#725A93;
+  /* Paleta de referência aeroespacial/defesa: azul-marinho + vermelho de destaque.
+     Ajuste estas variáveis para os hex oficiais da marca quando disponíveis. */
+  --graphite-900:#0B1826; --graphite-800:#0F2033; --graphite-700:#16293F;
+  --graphite-600:#22374E; --graphite-500:#33495F; --line-on-dark:#3C556E;
+  --paper:#F4F6F8; --paper-dim:#E7EBEF; --paper-edge:#D3DAE1;
+  --ink:#101820; --ink-dim:#51606F; --ink-faint:#8697A5cc;
+  --line:#C3CCD4; --surface:#ffffff; --surface-hover:#ffffff;
+  --blueprint:#1B4B72; --blueprint-dim:#9CC1DE; --blueprint-ink:#0F3352;
+  --amber:#C97A2B; --danger:#C8262A; --success:#2E7D5B; --purple:#5B4E8C;
   --font-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --font-mono:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",Menlo,monospace;
-  --radius:3px;
+  --radius:4px;
+  --card-shadow:drop-shadow(0 1px 2px rgba(11,24,38,.10)) drop-shadow(0 3px 8px rgba(11,24,38,.10));
+  --card-shadow-hover:drop-shadow(0 2px 3px rgba(11,24,38,.14)) drop-shadow(0 8px 18px rgba(11,24,38,.16));
 }
 :root[data-theme="dark"]{
-  --paper:#1E242C; --paper-dim:#262D36; --paper-edge:#39424D;
-  --ink:#E7E9EC; --ink-dim:#9BA7B4; --ink-faint:#6B7684cc;
-  --line:#3C4552; --surface:#252C35; --surface-hover:#2C343E;
-  --blueprint-dim:#3E5670;
+  --paper:#101C2B; --paper-dim:#16243A; --paper-edge:#2A3B52;
+  --ink:#E7ECF2; --ink-dim:#93A5B8; --ink-faint:#5E7186cc;
+  --line:#33475F; --surface:#16243A; --surface-hover:#1C2E48;
+  --blueprint-dim:#3E6D93;
+  --card-shadow:drop-shadow(0 1px 2px rgba(0,0,0,.35)) drop-shadow(0 3px 10px rgba(0,0,0,.3));
+  --card-shadow-hover:drop-shadow(0 2px 4px rgba(0,0,0,.4)) drop-shadow(0 10px 22px rgba(0,0,0,.4));
 }
 *{box-sizing:border-box;}
 html,body{height:100%;}
@@ -109,12 +115,16 @@ input,select,textarea{font-family:inherit;}
 
 /* ---------- Workspace ---------- */
 #workspace{flex:1; display:flex; min-height:0; background:var(--paper); position:relative;}
+.panelResizer{width:5px; flex:none; cursor:col-resize; background:transparent; position:relative;}
+.panelResizer::after{content:""; position:absolute; top:0; bottom:0; left:2px; width:1px; background:var(--line);}
+.panelResizer:hover, .panelResizer.dragging{background:var(--blueprint-dim);}
+.panelResizer.hidden{display:none;}
 
 #outlinePanel{
   width:300px; flex:none; display:flex; flex-direction:column; background:var(--surface);
   border-right:1px solid var(--line); min-width:0; transition:width .18s ease;
 }
-#outlinePanel.collapsed{width:0; border:none; overflow:hidden;}
+#outlinePanel.collapsed{width:0 !important; border:none; overflow:hidden;}
 .panelHead{
   padding:10px 12px 8px; font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
   color:var(--ink-dim); border-bottom:1px solid var(--paper-edge); display:flex; justify-content:space-between; align-items:center;
@@ -195,16 +205,19 @@ input,select,textarea{font-family:inherit;}
 #canvasWrap.panning{cursor:grabbing;}
 #canvasWrap.node-dragging{cursor:default;}
 svg#canvas{width:100%; height:100%; display:block; user-select:none;}
-.nbox{cursor:pointer;}
+.nbox{cursor:pointer; filter:var(--card-shadow); transition:filter .12s ease;}
+.nbox:hover{filter:var(--card-shadow-hover);}
+.nbox.selected{filter:var(--card-shadow-hover);}
 .nbox rect.box{fill:var(--surface); stroke:var(--line); stroke-width:1.4;}
 .nbox.root rect.box{fill:var(--paper-dim); stroke:var(--blueprint); stroke-width:1.6;}
 .nbox.selected rect.box{stroke:var(--blueprint); stroke-width:2.4;}
 .nbox text{pointer-events:none;}
 .nbox .statusBand{opacity:.16;}
 .nbox .statusLabel{font-family:var(--font-ui); font-size:12.5px; font-weight:800; letter-spacing:.03em;}
-.nbox .codeText{font-family:var(--font-mono); font-size:13.5px; font-weight:800; fill:var(--ink);}
-.nbox .codeTextEmpty{font-weight:600; font-style:italic; fill:var(--ink-faint); font-size:12.5px;}
-.nbox .pnText{font-family:var(--font-mono); font-size:11.5px; fill:var(--ink-dim);}
+.nbox .infoLine{font-family:var(--font-ui); font-size:12.5px;}
+.nbox .infoLine .infoLabel{font-weight:800; fill:var(--ink);}
+.nbox .infoLine .infoValue{font-weight:500; fill:var(--ink-dim);}
+.nbox .infoLine.infoMono .infoValue{font-family:var(--font-mono);}
 .nbox .nameText{font-family:var(--font-ui); font-size:16.5px; font-weight:700; fill:var(--ink);}
 .nbox .qtyBadge rect{fill:var(--paper-dim); stroke:var(--line); stroke-width:1;}
 .nbox .qtyBadge text{font-size:11px; fill:var(--ink-dim); font-family:var(--font-mono);}
@@ -217,7 +230,6 @@ svg#canvas{width:100%; height:100%; display:block; user-select:none;}
 .nbox .detailToggle rect{fill:var(--surface); stroke:var(--line); stroke-width:1;}
 .nbox .detailToggle text{fill:var(--ink-dim); font-size:10.5px; text-anchor:middle; dominant-baseline:middle; pointer-events:none;}
 .nbox .detailDivider{stroke:var(--paper-edge); stroke-width:1;}
-.nbox .detailText{font-family:var(--font-mono); font-size:11px; fill:var(--ink-dim);}
 .nbox .resizeHandle{fill:var(--blueprint); stroke:var(--surface); stroke-width:1.2; cursor:nwse-resize;}
 .alignGuide{stroke:var(--danger); stroke-width:1; stroke-dasharray:4 3; pointer-events:none;}
 .edge{fill:none; stroke:var(--ink-faint); stroke-width:1.4;}
@@ -225,7 +237,7 @@ svg#canvas{width:100%; height:100%; display:block; user-select:none;}
 
 /* ---------- Properties panel ---------- */
 #propsPanel{width:300px; flex:none; background:var(--surface); border-left:1px solid var(--line); display:flex; flex-direction:column; min-width:0; transition:width .18s ease;}
-#propsPanel.collapsed{width:0; border:none; overflow:hidden;}
+#propsPanel.collapsed{width:0 !important; border:none; overflow:hidden;}
 #propsBody{flex:1; overflow-y:auto; padding:12px;}
 #propsEmpty{padding:26px 14px; text-align:center; color:var(--ink-dim); font-size:14px; line-height:1.5;}
 .field{margin-bottom:14px;}
@@ -459,6 +471,8 @@ svg#canvas{width:100%; height:100%; display:block; user-select:none;}
       <div id="outlineList"></div>
     </aside>
 
+    <div class="panelResizer" id="resizeOutline"></div>
+
     <button class="paneToggle" id="openOutlineTab" style="left:0;" title="Mostrar estrutura">›</button>
 
     <section id="diagramPanel">
@@ -484,6 +498,8 @@ svg#canvas{width:100%; height:100%; display:block; user-select:none;}
     </section>
 
     <button class="paneToggle right" id="openPropsTab" style="right:0;" title="Mostrar propriedades">‹</button>
+
+    <div class="panelResizer" id="resizeProps"></div>
 
     <aside id="propsPanel">
       <div class="panelHead">
@@ -539,11 +555,12 @@ function newNode(overrides){
 }
 EPC.newNode = newNode;
 const STATUS_INFO = {
-  em_processo: {label:'Em processo', hex:'#B8722A'},
-  liberado: {label:'Liberado total', hex:'#3C7A5C'}
+  liberado: {label:'Liberado total', hex:'#2E7D5B'},
+  em_processo: {label:'Em processo', hex:'#C97A2B'},
+  comprar: {label:'Comprar', hex:'#C8262A'}
 };
 function nodeStatus(node){
-  if(node.status==='liberado' || node.status==='em_processo') return node.status;
+  if(STATUS_INFO[node.status]) return node.status;
   return node.released ? 'liberado' : 'em_processo';
 }
 
@@ -790,7 +807,7 @@ function ensureCategories(project){
 }
 function cats(){ return (state.project && ensureCategories(state.project)) || COLOR_MAP; }
 const UNITS = ['un','pç','conjunto','par','m','mm','m²','m³','kg','g','L','mL'];
-const NODE_W = 212, NODE_H = 176, BAND_H = 28, DETAIL_H = 66, MIN_BOX_W = 150, MAX_BOX_W = 480, MAX_BOX_H_EXTRA = 300;
+const NODE_W = 212, NODE_H = 176, BAND_H = 28, DETAIL_H = 90, MIN_BOX_W = 150, MAX_BOX_W = 480, MAX_BOX_H_EXTRA = 300;
 const FONT_MONO = 'ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",Menlo,monospace';
 const FONT_UI = '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
 const STORAGE_INDEX = 'epc_projects_index';
@@ -823,6 +840,16 @@ function svgEl(tag, attrs){
   return el;
 }
 function isMobileLayout(){ return window.matchMedia('(max-width:880px)').matches; }
+function labeledText(x, y, label, value, opts){
+  opts = opts || {};
+  const t = svgEl('text', {class:'infoLine' + (opts.cls?(' '+opts.cls):''), x, y});
+  const l = svgEl('tspan', {class:'infoLabel'});
+  l.textContent = label + ' ';
+  const v = svgEl('tspan', {class:'infoValue'});
+  v.textContent = value;
+  t.appendChild(l); t.appendChild(v);
+  return t;
+}
 
 /* --------------------------- Persistência --------------------------- */
 function loadIndex(){
@@ -1002,15 +1029,55 @@ function wrapText(text, font, maxWidth, maxLines){
   return lines;
 }
 
-/* --------------------------- Painéis (recolher / mostrar) --------------------------- */
+/* --------------------------- Painéis (recolher / mostrar / redimensionar) --------------------------- */
 function updatePaneToggles(){
   const outlineCollapsed = $('#outlinePanel').classList.contains('collapsed');
   const propsCollapsed = $('#propsPanel').classList.contains('collapsed');
   $('#openOutlineTab').style.display = outlineCollapsed ? 'flex' : 'none';
   $('#openPropsTab').style.display = propsCollapsed ? 'flex' : 'none';
+  $('#resizeOutline').classList.toggle('hidden', outlineCollapsed || isMobileLayout());
+  $('#resizeProps').classList.toggle('hidden', propsCollapsed || isMobileLayout());
   if(isMobileLayout()) $('#mobileScrim').classList.toggle('show', !outlineCollapsed || !propsCollapsed);
   else $('#mobileScrim').classList.remove('show');
 }
+function loadPanelWidths(){
+  try{ return JSON.parse(localStorage.getItem('epc_panel_widths') || '{}'); }catch(e){ return {}; }
+}
+function savePanelWidths(w){
+  try{ localStorage.setItem('epc_panel_widths', JSON.stringify(w)); }catch(e){}
+}
+function setupPanelResizer(handleId, panelId, side){
+  const handle = $('#'+handleId), panel = $('#'+panelId);
+  let dragging=false, startX=0, startW=0;
+  handle.addEventListener('mousedown', e=>{
+    if(e.button!==0) return;
+    dragging=true; startX=e.clientX; startW=panel.getBoundingClientRect().width;
+    handle.classList.add('dragging');
+    document.body.style.userSelect='none';
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', e=>{
+    if(!dragging) return;
+    const dx = e.clientX-startX;
+    let w = side==='left' ? startW+dx : startW-dx;
+    w = Math.max(220, Math.min(560, w));
+    panel.style.width = w+'px';
+  });
+  window.addEventListener('mouseup', ()=>{
+    if(!dragging) return;
+    dragging=false; handle.classList.remove('dragging'); document.body.style.userSelect='';
+    const widths = loadPanelWidths();
+    widths[panelId] = parseFloat(panel.style.width);
+    savePanelWidths(widths);
+  });
+}
+function applyStoredPanelWidths(){
+  const widths = loadPanelWidths();
+  if(widths.outlinePanel) $('#outlinePanel').style.width = widths.outlinePanel+'px';
+  if(widths.propsPanel) $('#propsPanel').style.width = widths.propsPanel+'px';
+}
+setupPanelResizer('resizeOutline','outlinePanel','left');
+setupPanelResizer('resizeProps','propsPanel','right');
 function openPanel(which){
   const panel = which==='outline' ? $('#outlinePanel') : $('#propsPanel');
   panel.classList.remove('collapsed');
@@ -1236,13 +1303,13 @@ function renderDiagram(){
     const x = node._layoutX - boxW/2, y = node._layoutY;
     const g = svgEl('g', {class:'nbox' + (!node.parentId?' root':'') + (node.id===state.selectedId?' selected':''), 'data-id':node.id, transform:`translate(${x},${y})`});
 
-    const rect = svgEl('rect', {class:'box', width:boxW, height:boxH, rx:3, ry:3});
+    const rect = svgEl('rect', {class:'box', width:boxW, height:boxH, rx:8, ry:8});
     g.appendChild(rect);
 
     // Faixa de status: fundo tingido na cor do status, no topo do card — só o status.
     const st = STATUS_INFO[nodeStatus(node)];
-    g.appendChild(svgEl('rect', {class:'statusBand', x:0, y:0, width:boxW, height:BAND_H, rx:3, fill:st.hex}));
-    g.appendChild(svgEl('rect', {x:0, y:Math.max(0,BAND_H-3), width:boxW, height:3, fill:st.hex}));
+    g.appendChild(svgEl('rect', {class:'statusBand', x:0, y:0, width:boxW, height:BAND_H, rx:8, fill:st.hex}));
+    g.appendChild(svgEl('rect', {x:0, y:Math.max(0,BAND_H-8), width:boxW, height:8, fill:st.hex}));
 
     if(node.color && cats()[node.color]){
       g.appendChild(svgEl('rect', {x:0,y:0,width:5,height:boxH,fill:cats()[node.color].hex}));
@@ -1274,15 +1341,10 @@ function renderDiagram(){
       g.appendChild(t);
     });
 
-    // Informações abaixo do título: código e P/N, centralizados.
-    const infoY = nameStartY + 2*nameLineH + 8;
-    const codeLabel = node.code || 'sem código';
-    const codeT = svgEl('text', {class:'codeText' + (node.code?'':' codeTextEmpty'), x:boxW/2, y:infoY, 'text-anchor':'middle'});
-    codeT.textContent = codeLabel;
-    g.appendChild(codeT);
-    const pnT = svgEl('text', {class:'pnText', x:boxW/2, y:infoY+18, 'text-anchor':'middle'});
-    pnT.textContent = 'P/N ' + (node.pn || '—');
-    g.appendChild(pnT);
+    // Informações abaixo do título: Código e P/N, com rótulos em negrito.
+    const infoY = nameStartY + 2*nameLineH + 10;
+    g.appendChild(labeledText(14, infoY, 'Código:', node.code || '—', {cls:'infoMono'}));
+    g.appendChild(labeledText(14, infoY+19, 'P/N:', node.pn || '—', {cls:'infoMono'}));
 
     // Quantidade, no rodapé do card.
     const qtyLabel = (node.qty!=null && node.qty!=='') ? (String(node.qty) + (node.unit?(' '+node.unit):'')) : '';
@@ -1301,15 +1363,11 @@ function renderDiagram(){
       const detailY0 = NODE_H+(node.boxHExtra||0);
       g.appendChild(svgEl('line', {class:'detailDivider', x1:0, y1:detailY0, x2:boxW, y2:detailY0}));
       const catInfo = node.color && cats()[node.color] ? cats()[node.color].label : 'Sem categoria';
-      const detailLines = [
-        'Categoria: ' + catInfo,
-        'Fabricante: ' + (node.manufacturer || '—')
-      ];
-      detailLines.forEach((line,i)=>{
-        const dT = svgEl('text', {class:'detailText', x:12, y:detailY0+22+i*17});
-        dT.textContent = line;
-        g.appendChild(dT);
-      });
+      const obsFont = '12.5px ' + FONT_UI;
+      const obsLine = wrapText(node.desc || '—', obsFont, boxW-24-62, 1)[0];
+      g.appendChild(labeledText(14, detailY0+22, 'Categoria:', catInfo));
+      g.appendChild(labeledText(14, detailY0+42, 'Fabricante:', node.manufacturer || '—'));
+      g.appendChild(labeledText(14, detailY0+62, 'Obs:', obsLine));
     }
 
     if(node.children.length){
@@ -2251,6 +2309,8 @@ function boot(){
   if(isMobileLayout()){
     $('#outlinePanel').classList.add('collapsed');
     $('#propsPanel').classList.add('collapsed');
+  } else {
+    applyStoredPanelWidths();
   }
   updatePaneToggles();
   renderAll();
